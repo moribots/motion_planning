@@ -1,0 +1,9 @@
+- git:
+    local-name: motion_planning
+    uri: git@github.com:moribots/motion_planning.git
+- git:
+    local-name: tb3
+    uri: git@github.com:moribots/turtlebot3_from_scratch.git
+- git:
+    local-name: world
+    uri: https://github.com/ME495-Navigation/nuturtlebot.git

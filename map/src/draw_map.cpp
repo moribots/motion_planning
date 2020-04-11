@@ -31,6 +31,9 @@ int main(int argc, char** argv)
   double frequency = 60.0;
   XmlRpc::XmlRpcValue xml_obstacles;
 
+  // store Obstacle(s) here to create Map
+  std::vector<map::Obstacle> obstacles_v;
+
   ros::init(argc, argv, "draw_map_node"); // register the node on ROS
   ros::NodeHandle nh; // get a handle to ROS
   ros::NodeHandle nh_("~"); // get a handle to ROS
@@ -49,8 +52,8 @@ int main(int argc, char** argv)
     for(int i = 0; i < xml_obstacles.size(); ++i)
     {
       // Obstacle contains std::vector<Vector2D>
-
       // create Obstacle with empty vertex vector
+      map::Obstacle obs;
       if(xml_obstacles[i].getType() != XmlRpc::XmlRpcValue::TypeArray)
       {
           ROS_ERROR("obstacles[%d] has no vertices", i);
@@ -67,14 +70,18 @@ int main(int argc, char** argv)
                ROS_ERROR("The coordinates of vertex[%d] of obstacles[%d] are not doubles", i);
             } else {
               // PASSED ALL THE TESTS: push Vector2D to vertices list in Obstacle object
-              double a = xml_obstacles[i][0];
-              double b = xml_obstacles[i][1];
+              rigid2d::Vector2D vertex(xml_obstacles[i][j][0], xml_obstacles[i][j][1]);
+              obs.vertices.push_back(vertex);
             }
           }
       }
       // push Obstacle object to vector of Object(s) in Map
+      obstacles_v.push_back(obs);
     }
   }
+
+  // Create Map
+  map::Map map(obstacles_v);
 
   ros::Rate rate(frequency);
 

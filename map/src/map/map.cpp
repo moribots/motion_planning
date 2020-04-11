@@ -5,12 +5,20 @@ namespace map
 	using rigid2d::Vector2D;
 
 	// Obstacle
+	Obstacle::Obstacle()
+	{
+	}
+
 	Obstacle::Obstacle(const std::vector<Vector2D> & vertices_)
 	{
 		vertices = vertices_;
 	}
 
 	// Map
+	Map::Map()
+	{
+	}
+
 	Map::Map(const std::vector<Obstacle> & obstacles_)
 	{
 		obstacles = obstacles_;

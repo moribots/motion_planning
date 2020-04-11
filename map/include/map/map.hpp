@@ -16,6 +16,9 @@ namespace map
     {
         std::vector<Vector2D> vertices;
 
+        // \brief constructor for Obstacle without inputs
+        Obstacle();
+
         // \brief constructor for Obstacle with inputs
         Obstacle(const std::vector<Vector2D> & vertices_);
     };

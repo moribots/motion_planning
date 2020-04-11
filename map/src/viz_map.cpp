@@ -20,7 +20,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/Point.h>
 
-// Used to convert YAML list of lists to std::vector
+// Used to deal with YAML list of lists
 #include <xmlrpcpp/XmlRpcValue.h> // catkin component
 
 
@@ -45,6 +45,7 @@ int main(int argc, char** argv)
   // Parameters
   nh_.getParam("frequency", frequency);
   nh_.getParam("obstacles", xml_obstacles);
+  nh_.getParam("map_frame_id", frame_id);
 
   // 'obstacles' is a triple-nested list.
   // 1st level: obstacle (Obstacle), 2nd level: vertices (std::vector), 3rd level: coordinates (Vector2D)
@@ -116,15 +117,17 @@ int main(int argc, char** argv)
   marker.color.a = 1.0;
   marker.lifetime = ros::Duration();
 
+  // LINE_STRIP relative to this pose
+  marker.pose.position.x = 0.0;
+  marker.pose.position.y = 0.0;
+
   // Now, loop through obstacles in map to create line strips.
   // Each obstacle = 1 line strip
   for (auto obs_iter = obstacles_v.begin(); obs_iter != obstacles_v.end(); obs_iter++)
   {
     marker.points.clear();
     marker.id = std::distance(obstacles_v.begin(), obs_iter);
-    // Use 1st point as marker pose
-    marker.pose.position.x = obs_iter->vertices.at(0).x / SCALE;
-    marker.pose.position.y = obs_iter->vertices.at(0).y / SCALE;
+    ROS_DEBUG("obstacle [%d] starts at (%.2f, %.2f)", marker.id + 1, obs_iter->vertices.at(0).x / SCALE, obs_iter->vertices.at(0).y / SCALE);
     for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
     {
       geometry_msgs::Point new_vertex;

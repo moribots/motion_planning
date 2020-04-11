@@ -29,4 +29,11 @@ namespace map
 		return obstacles;
 	}
 
+
+	// Helper Functions
+	euclidean_distance(const double & x_rel, const double & y_rel)
+	{
+		return sqrt(pow(x_rel, 2) + pow(y_rel, 2));
+	}
+
 }

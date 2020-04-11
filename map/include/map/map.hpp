@@ -43,6 +43,8 @@ namespace map
         // Map obstacles
         std::vector<Obstacle> obstacles;
     };
+
+    double euclidean_distance(const double & x_rel, const double & y_rel);
 }
 
 #endif

@@ -14,6 +14,7 @@ namespace map
     struct Edge
     {
         // ID of node connected by edge
+        // init to -1 for error checking
         int next_id = -1;
         // Euclidean Distance between Nodes (Vertices)
         int distance
@@ -22,9 +23,10 @@ namespace map
     struct Vertex
     {
         // ID of current Node/Vertex
+        // init to -1 for error checking
         int id = -1;
         // Cartesian Coordinates of Vertex
-        Vector2D coord;
+        Vector2D coords;
         // Edges connected to this node
         std::vector<Edge> edges;
         // IDs of Adjacent Nodes - HASH TABLE
@@ -34,16 +36,45 @@ namespace map
         bool visited
 
         /// \brief Check if edge exists in ID Hash Table
-        bool edgeExists(int id);
+        bool edge_exists(const int & id);
     }
 
     /// \brief stores Obstacle(s) to construct basic PRM. Inherits from Map in map.hpp.
     class PRM public Map
     {
     public:
-        void obstacles_to_hash
+
+        // \brief Constructs a Roadmap.
+        // \param n: number of nodes to put in the Roadmap.
+        // \param k: number of closest neighbours to examine for each configuration.
+        void build_map(const int & n, const int & k);
+
+        // \brief Sample free space Q for configurations q. Steps 3-7 of algorithm.
+        // \param n: number of nodes to put in the Roadmap.
+        void sample_configurations(const int & n);
+
+        // \brief For a given configuration q, return indeces of K Nearest Neighbours. Step 10 of algorithm.
+        // \param q: the Vertex being examined
+        // \param k: number of closest neighbours to examine for each configuration.
+        // NOTE: Using Brute Force Now, replace with KD-Tree + Rebalance
+        std::vector<int> find_knn(const Vertex & q, const int & k);
+
+        // \brief Check is the Edge between two nodes is valid (no collision, and above some euclidean distance)
+        // \param q: the main Vertex being examined
+        // \param q: the second Vertex being examined
+        // \param thresh: Euclidean Distance Threshold for valid Edge.
+        bool edge_valid(const Vertex & q, const Vertex & q_prime, const double & thresh);
+
+        // \brief Checks whether a potential Edge intersects an Obstacle. 'map::PRM::edge_valid' calls this function.
+        // \param q: the main Vertex being examined
+        // \param q: the second Vertex being examined
+        // \param blowup: approximate robot radius used for collision checking.
+        bool has_collision(const Vertex & q, const Vertex & q_prime, const double & blowup);
+
+
 
     private:
+        std::vector<Vertex> vertices;
     };
 }
 

@@ -34,14 +34,29 @@ namespace map
         /// \param obstacles_: the list of obstacles in this map
         Map(const std::vector<Obstacle> & obstacles_);
 
+        /// \brief this constructor creates a map that holds user-specified obstacles and robot size threshold.
+        /// \param obstacles_: the list of obstacles in this map
+        // \param inflate_robot_: approximate robot radius used for collision checking.
+        Map(const std::vector<Obstacle> & obstacles_, const double inflate_robot_);
+
         /// \brief return vector of obstacles
         /// \returns vector of Obstacle
         std::vector<Obstacle> return_obstacles();
+
+        /// \brief assigns the map space to map_extent in absolute(x,y).
+        void find_map_extent();
+
 
     // protected instead of private so that child Class can access
     protected:
         // Map obstacles
         std::vector<Obstacle> obstacles;
+
+        // Map size in x,y (remember map can have neg vals)
+        Vector2D map_extent;
+
+        // approximate robot radius used for collision checking.
+        double inflate_robot;
     };
 
     double euclidean_distance(const double & x_rel, const double & y_rel);

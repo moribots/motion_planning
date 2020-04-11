@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   rigid2d
   roscpp
   rostest
+  nuslam
   visualization_msgs
 )
 
@@ -111,8 +112,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 INCLUDE_DIRS include
-LIBRARIES ${PROJECT_NAME} rigid2d
-CATKIN_DEPENDS message_generation message_runtime rigid2d roscpp visualization_msgs
+LIBRARIES ${PROJECT_NAME} rigid2d nuslam
+CATKIN_DEPENDS message_generation message_runtime rigid2d roscpp nuslam visualization_msgs
 #  DEPENDS system_lib
 )
 
@@ -129,7 +130,7 @@ include_directories(
 
 add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/${PROJECT_NAME}.cpp
-#   src/${PROJECT_NAME}/prm.cpp
+  src/${PROJECT_NAME}/prm.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -153,12 +154,13 @@ set_target_properties(viz_map PROPERTIES OUTPUT_NAME viz_map PREFIX "")
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(viz_map ${${PROJECT_NAME}_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(viz_map ${${PROJECT_NAME}_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(
 viz_map # this is my node that will use below libraries
 ${rigid2d_LIBRARIES}
+${nuslam_LIBRARIES}
 ${PROJECT_NAME}
 ${catkin_LIBRARIES}
 )

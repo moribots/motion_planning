@@ -6,6 +6,7 @@
 #include <rigid2d/rigid2d.hpp>
 #include <map/map.hpp>
 #include <vector>
+#include <unordered_set>
 
 namespace map
 {
@@ -17,7 +18,7 @@ namespace map
         // init to -1 for error checking
         int next_id = -1;
         // Euclidean Distance between Nodes (Vertices)
-        int distance
+        int distance;
     };
 
     struct Vertex
@@ -37,16 +38,16 @@ namespace map
         std::unordered_set<int> id_set;
 
         // Helps with search
-        bool visited
+        bool visited;
 
         /// \brief Check if edge exists in ID Hash Table
         /// \param check_id: ID of node to connect to
         /// \returns True if current Vertex connected to given ID.
         bool edge_exists(const int & check_id);
-    }
+    };
 
     /// \brief stores Obstacle(s) to construct basic PRM. Inherits from Map in map.hpp.
-    class PRM public Map
+    class PRM : public Map
     {
     public:
 
@@ -70,6 +71,11 @@ namespace map
         // \param q: the second Vertex being examined
         // \param thresh: Euclidean Distance Threshold for valid Edge.
         bool edge_valid(const Vertex & q, const Vertex & q_prime, const double & thresh);
+
+        // \brief Checks whether a potential Vertex lies on an Obstacle. 'map::PRM::sample_configurations' calls this function.
+        // \param q: the Vertex being examined
+        // \param inflate_robot: approximate robot radius used for collision checking.
+        bool no_collision(const Vertex & q, const double & inflate_robot);
 
         // \brief Checks whether a potential Edge intersects an Obstacle. 'map::PRM::edge_valid' calls this function.
         // \param q: the main Vertex being examined

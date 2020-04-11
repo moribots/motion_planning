@@ -13,7 +13,7 @@ namespace map
 
     struct Edge
     {
-        // ID of node connected by edge
+        // ID of next node connected by edge
         // init to -1 for error checking
         int next_id = -1;
         // Euclidean Distance between Nodes (Vertices)
@@ -22,6 +22,9 @@ namespace map
 
     struct Vertex
     {
+        // \brief Constructor with Coordinates
+        Vertex(const Vector2D coords_);
+
         // ID of current Node/Vertex
         // init to -1 for error checking
         int id = -1;
@@ -33,10 +36,13 @@ namespace map
         // O(1) best case or O(n) worst case
         std::unordered_set<int> id_set;
 
+        // Helps with search
         bool visited
 
         /// \brief Check if edge exists in ID Hash Table
-        bool edge_exists(const int & id);
+        /// \param check_id: ID of node to connect to
+        /// \returns True if current Vertex connected to given ID.
+        bool edge_exists(const int & check_id);
     }
 
     /// \brief stores Obstacle(s) to construct basic PRM. Inherits from Map in map.hpp.
@@ -68,13 +74,11 @@ namespace map
         // \brief Checks whether a potential Edge intersects an Obstacle. 'map::PRM::edge_valid' calls this function.
         // \param q: the main Vertex being examined
         // \param q: the second Vertex being examined
-        // \param blowup: approximate robot radius used for collision checking.
-        bool has_collision(const Vertex & q, const Vertex & q_prime, const double & blowup);
-
-
+        // \param inflate_robot: approximate robot radius used for collision checking.
+        bool no_collision(const Vertex & q, const Vertex & q_prime, const double & inflate_robot);
 
     private:
-        std::vector<Vertex> vertices;
+        std::vector<Vertex> configurations;
     };
 }
 

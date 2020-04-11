@@ -35,7 +35,8 @@ namespace map
         /// \returns vector of Obstacle
         std::vector<Obstacle> return_obstacles();
 
-    private:
+    // protected instead of private so that child Class can access
+    protected:
         // Map obstacles
         std::vector<Obstacle> obstacles;
     };

@@ -67,7 +67,7 @@ int main(int argc, char** argv)
             } else if(
              xml_obstacles[i][j][0].getType() != XmlRpc::XmlRpcValue::TypeDouble or
              xml_obstacles[i][j][1].getType() != XmlRpc::XmlRpcValue::TypeDouble) {
-               ROS_ERROR("The coordinates of vertex[%d] of obstacles[%d] are not doubles", i);
+               ROS_ERROR("The coordinates of vertex[%d] of obstacles[%d] are not doubles", j, i);
             } else {
               // PASSED ALL THE TESTS: push Vector2D to vertices list in Obstacle object
               rigid2d::Vector2D vertex(xml_obstacles[i][j][0], xml_obstacles[i][j][1]);

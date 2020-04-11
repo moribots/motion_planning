@@ -49,14 +49,23 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>message_runtime</build_depend>
   <build_depend>rigid2d</build_depend>
   <build_depend>roscpp</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <build_export_depend>message_generation</build_export_depend>
+  <build_export_depend>message_runtime</build_export_depend>
   <build_export_depend>rigid2d</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>visualization_msgs</build_export_depend>
+  <exec_depend>message_runtime</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rigid2d</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
 
-
+  <test_depend>rostest</test_depend>
+  <test_depend>rosunit</test_depend>
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->

@@ -8,6 +8,7 @@ Panels:
         - /TF1/Frames1
         - /TF1/Tree1
         - /Obstacles1
+        - /PRM1
       Splitter Ratio: 0.5
     Tree Height: 714
   - Class: rviz/Selection
@@ -232,6 +233,14 @@ Visualization Manager:
         "": true
       Queue Size: 100
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /viz_prm
+      Name: PRM
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -296,5 +305,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1128
-  X: 184
+  X: 183
   Y: 0

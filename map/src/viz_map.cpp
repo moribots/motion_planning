@@ -13,6 +13,8 @@
 #include <vector>
 
 #include "map/map.hpp"
+#include "map/prm.hpp"
+
 #include "nuslam/TurtleMap.h"
 
 #include <functional>  // To use std::bind
@@ -36,6 +38,12 @@ int main(int argc, char** argv)
   std::string frame_id = "base_footprint";
   XmlRpc::XmlRpcValue xml_obstacles;
 
+  // PRM Parameters
+  int n = 10;
+  int k = 5;
+  double thresh = 0.01;
+  std::string map_type = "map";
+
   // store Obstacle(s) here to create Map
   std::vector<map::Obstacle> obstacles_v;
 
@@ -46,6 +54,10 @@ int main(int argc, char** argv)
   nh_.getParam("frequency", frequency);
   nh_.getParam("obstacles", xml_obstacles);
   nh_.getParam("map_frame_id", frame_id);
+  nh_.getParam("n", n);
+  nh_.getParam("k", k);
+  nh_.getParam("thresh", thresh);
+  nh_.getParam("map_type", map_type);
 
   // 'obstacles' is a triple-nested list.
   // 1st level: obstacle (Obstacle), 2nd level: vertices (std::vector), 3rd level: coordinates (Vector2D)
@@ -90,6 +102,10 @@ int main(int argc, char** argv)
   // Create Map
   map::Map map(obstacles_v);
 
+  // Build PRM
+  map::PRM prm(obstacles_v);
+  prm.build_map(n, k, thresh);
+
   // Initialize Marker
   // Init Marker Array Publisher
   ros::Publisher marker_pub = nh.advertise<visualization_msgs::MarkerArray>("viz_map", 1);
@@ -121,28 +137,54 @@ int main(int argc, char** argv)
   marker.pose.position.x = 0.0;
   marker.pose.position.y = 0.0;
 
-  // Now, loop through obstacles in map to create line strips.
-  // Each obstacle = 1 line strip
-  for (auto obs_iter = obstacles_v.begin(); obs_iter != obstacles_v.end(); obs_iter++)
+  if (map_type == "map")
   {
-    marker.points.clear();
-    marker.id = std::distance(obstacles_v.begin(), obs_iter);
-    ROS_DEBUG("obstacle [%d] starts at (%.2f, %.2f)", marker.id + 1, obs_iter->vertices.at(0).x / SCALE, obs_iter->vertices.at(0).y / SCALE);
-    for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
+    // DRAW MAP
+    // Now, loop through obstacles in map to create line strips.
+    // Each obstacle = 1 line strip
+    for (auto obs_iter = obstacles_v.begin(); obs_iter != obstacles_v.end(); obs_iter++)
     {
+      marker.points.clear();
+      marker.id = std::distance(obstacles_v.begin(), obs_iter);
+      ROS_DEBUG("obstacle [%d] starts at (%.2f, %.2f)", marker.id + 1, obs_iter->vertices.at(0).x / SCALE, obs_iter->vertices.at(0).y / SCALE);
+      for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
+      {
+        geometry_msgs::Point new_vertex;
+        new_vertex.x = v_iter->x / SCALE; // NOTE: SCALE DOWN
+        new_vertex.y = v_iter->y / SCALE;
+        new_vertex.z = 0.0;
+        marker.points.push_back(new_vertex);
+      }
+      // Before pushing back, connect last vertex to first vertex
       geometry_msgs::Point new_vertex;
-      new_vertex.x = v_iter->x / SCALE; // NOTE: SCALE DOWN
-      new_vertex.y = v_iter->y / SCALE;
+      new_vertex.x = obs_iter->vertices.at(0).x / SCALE;
+      new_vertex.y = obs_iter->vertices.at(0).y / SCALE;
       new_vertex.z = 0.0;
       marker.points.push_back(new_vertex);
+      marker_arr.markers.push_back(marker);
     }
-    // Before pushing back, connect last vertex to first vertex
-    geometry_msgs::Point new_vertex;
-    new_vertex.x = obs_iter->vertices.at(0).x / SCALE;
-    new_vertex.y = obs_iter->vertices.at(0).y / SCALE;
-    new_vertex.z = 0.0;
-    marker.points.push_back(new_vertex);
-    marker_arr.markers.push_back(marker);
+  } else if (map_type == "prm")
+  {
+    // DRAW PRM
+    auto configurations = prm.return_prm();
+    for (auto node_iter = configurations.begin(); node_iter != configurations.end(); node_iter++)
+    {
+      marker.points.clear();
+      marker.id = std::distance(configurations.begin(), node_iter);
+      for (auto id_iter = node_iter->second.id_set.begin(); id_iter != node_iter->second.id_set.end(); id_iter++)
+      {
+        // Find Vertex for each ID
+        auto neighbor_iter = configurations.find(*id_iter);
+
+        geometry_msgs::Point new_vertex;
+        new_vertex.x = neighbor_iter->second.coords.x / SCALE; // NOTE: SCALE DOWN
+        new_vertex.y = neighbor_iter->second.coords.y / SCALE;
+        new_vertex.z = 0.0;
+        marker.points.push_back(new_vertex);
+      }
+      // Push to Marker Array
+      marker_arr.markers.push_back(marker);
+    }
   }
 
   ros::Rate rate(frequency);

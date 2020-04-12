@@ -134,4 +134,9 @@ namespace map
 		// TODO
 		return true;
 	}
+
+	std::unordered_map<int, Vertex> PRM::return_prm()
+	{
+		return configurations;
+	}
 }

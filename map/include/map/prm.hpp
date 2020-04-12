@@ -50,6 +50,9 @@ namespace map
     /// \brief stores Obstacle(s) to construct basic PRM. Inherits from Map in map.hpp.
     class PRM : public Map
     {
+        // Inherits Constructors
+        using Map::Map;
+
     public:
 
         // \brief Constructs a Roadmap.
@@ -85,6 +88,9 @@ namespace map
         // \param inflate_robot: approximate robot radius used for collision checking.
         bool no_collision(const Vertex & q, const Vertex & q_prime, const double & inflate_robot);
 
+        // \brief Return Probabilistic Road Map
+        // \returns Probabilistic Road Map 
+        std::unordered_map<int, Vertex> return_prm();
     private:
         // Hash Table
         std::unordered_map<int, Vertex>  configurations;

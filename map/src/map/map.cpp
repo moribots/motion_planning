@@ -69,7 +69,8 @@ namespace map
 		    		y_min = v_iter->y;
 		    	}
 
-		    	map_extent = Vector2D(x_max - x_min, y_max - y_min);
+		    	map_max = Vector2D(x_max, y_max);
+		    	map_min = Vector2D(x_min, y_min);
 		    }
 		}
 	}

@@ -56,11 +56,16 @@ namespace map
 
 	void PRM::sample_configurations(const int & n)
 	{
+		// MAP EXTENT
+		// std::cout << "Map Extent: (" << map_max.x << ", " << map_max.y << ")" << std::endl;
 		while (static_cast<int>(configurations.size()) < n)
 		{
-			std::normal_distribution<double> d(0, 1);
-			double sample_x = map_extent.x * d(nuslam::get_random());
-			double sample_y = map_extent.y * d(nuslam::get_random());
+			// Sample random number with assigned limits
+			std::uniform_real_distribution<double> dx(map_min.x, map_max.x);
+			std::uniform_real_distribution<double> dy(map_min.y, map_max.y);
+			// Random Number Generator defined in nuslam package
+			double sample_x = dx(nuslam::get_random());
+			double sample_y = dy(nuslam::get_random());
 
 			Vector2D coords(sample_x, sample_y);
 

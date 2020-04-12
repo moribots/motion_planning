@@ -90,6 +90,9 @@ int main(int argc, char** argv)
             } else {
               // PASSED ALL THE TESTS: push Vector2D to vertices list in Obstacle object
               rigid2d::Vector2D vertex(xml_obstacles[i][j][0], xml_obstacles[i][j][1]);
+              // NOTE: SCALE DOWN
+              vertex.x /= SCALE;
+              vertex.y /= SCALE;
               obs.vertices.push_back(vertex);
             }
           }
@@ -133,6 +136,19 @@ int main(int argc, char** argv)
   marker.color.a = 1.0;
   marker.lifetime = ros::Duration();
 
+  // Color based on map_type
+  if (map_type == "map")
+  {
+    marker.color.r = 0.5f;
+    marker.color.g = 0.0f;
+    marker.color.b = 0.5f;
+  } else if (map_type == "prm")
+  {
+    marker.color.r = 0.96f;
+    marker.color.g = 0.475f;
+    marker.color.b = 0.0f;
+  }
+
   // LINE_STRIP relative to this pose
   marker.pose.position.x = 0.0;
   marker.pose.position.y = 0.0;
@@ -150,15 +166,15 @@ int main(int argc, char** argv)
       for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
       {
         geometry_msgs::Point new_vertex;
-        new_vertex.x = v_iter->x / SCALE; // NOTE: SCALE DOWN
-        new_vertex.y = v_iter->y / SCALE;
+        new_vertex.x = v_iter->x;
+        new_vertex.y = v_iter->y;
         new_vertex.z = 0.0;
         marker.points.push_back(new_vertex);
       }
       // Before pushing back, connect last vertex to first vertex
       geometry_msgs::Point new_vertex;
-      new_vertex.x = obs_iter->vertices.at(0).x / SCALE;
-      new_vertex.y = obs_iter->vertices.at(0).y / SCALE;
+      new_vertex.x = obs_iter->vertices.at(0).x;
+      new_vertex.y = obs_iter->vertices.at(0).y;
       new_vertex.z = 0.0;
       marker.points.push_back(new_vertex);
       marker_arr.markers.push_back(marker);
@@ -177,8 +193,8 @@ int main(int argc, char** argv)
         auto neighbor_iter = configurations.find(*id_iter);
 
         geometry_msgs::Point new_vertex;
-        new_vertex.x = neighbor_iter->second.coords.x / SCALE; // NOTE: SCALE DOWN
-        new_vertex.y = neighbor_iter->second.coords.y / SCALE;
+        new_vertex.x = neighbor_iter->second.coords.x;
+        new_vertex.y = neighbor_iter->second.coords.y;
         new_vertex.z = 0.0;
         marker.points.push_back(new_vertex);
       }

@@ -52,8 +52,11 @@ namespace map
         // Map obstacles
         std::vector<Obstacle> obstacles;
 
-        // Map size in x,y (remember map can have neg vals)
-        Vector2D map_extent;
+        // Map maximum coordinatesin x,y
+        Vector2D map_max;
+
+        // Map minimum coordinatesin x,y
+        Vector2D map_min;
 
         // approximate robot radius used for collision checking.
         double inflate_robot;

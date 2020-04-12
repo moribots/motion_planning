@@ -7,6 +7,7 @@
 #include <map/map.hpp>
 #include <vector>
 #include <unordered_set>
+#include <unordered_map> 
 
 namespace map
 {
@@ -33,7 +34,7 @@ namespace map
         Vector2D coords;
         // Edges connected to this node
         std::vector<Edge> edges;
-        // IDs of Adjacent Nodes - HASH TABLE
+        // IDs of Adjacent Nodes
         // O(1) best case or O(n) worst case
         std::unordered_set<int> id_set;
 
@@ -43,7 +44,7 @@ namespace map
         /// \brief Check if edge exists in ID Hash Table
         /// \param check_id: ID of node to connect to
         /// \returns True if current Vertex connected to given ID.
-        bool edge_exists(const int & check_id);
+        bool edge_exists(const int & check_id) const;
     };
 
     /// \brief stores Obstacle(s) to construct basic PRM. Inherits from Map in map.hpp.
@@ -54,17 +55,18 @@ namespace map
         // \brief Constructs a Roadmap.
         // \param n: number of nodes to put in the Roadmap.
         // \param k: number of closest neighbours to examine for each configuration.
-        void build_map(const int & n, const int & k);
+        // \param thresh: Euclidean Distance Threshold for valid Edge.
+        void build_map(const int & n, const int & k, const double & thresh);
 
-        // \brief Sample free space Q for configurations q. Steps 3-7 of algorithm.
+        // \brief Sample free space Q for configurations q. Steps 3-8 of algorithm.
         // \param n: number of nodes to put in the Roadmap.
         void sample_configurations(const int & n);
 
-        // \brief For a given configuration q, return indeces of K Nearest Neighbours. Step 10 of algorithm.
-        // \param q: the Vertex being examined
+        // \brief For a given configuration q, assigns indeces of K Nearest Neighbours to q id_set. Step 10 of algorithm.
+        // \param q: the Vertex being examined. Not const because id_set is modified.
         // \param k: number of closest neighbours to examine for each configuration.
         // NOTE: Using Brute Force Now, replace with KD-Tree + Rebalance
-        std::vector<int> find_knn(const Vertex & q, const int & k);
+        void find_knn(Vertex & q, const int & k);
 
         // \brief Check is the Edge between two nodes is valid (no collision, and above some euclidean distance)
         // \param q: the main Vertex being examined
@@ -84,7 +86,8 @@ namespace map
         bool no_collision(const Vertex & q, const Vertex & q_prime, const double & inflate_robot);
 
     private:
-        std::vector<Vertex> configurations;
+        // Hash Table
+        std::unordered_map<int, Vertex>  configurations;
     };
 }
 

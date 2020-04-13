@@ -184,19 +184,34 @@ int main(int argc, char** argv)
     {
       marker.points.clear();
       marker.id = std::distance(configurations.begin(), node_iter);
-      for (auto id_iter = node_iter->second.id_set.begin(); id_iter != node_iter->second.id_set.end(); id_iter++)
-      {
-        // Find Vertex for each ID
-        auto neighbor_iter = configurations.find(*id_iter);
+      std::cout << "---------------------------------------------" << std::endl;
+      std::cout << "NODE: " << marker.id << std::endl;
 
-        geometry_msgs::Point new_vertex;
-        new_vertex.x = neighbor_iter->second.coords.x;
-        new_vertex.y = neighbor_iter->second.coords.y;
-        new_vertex.z = 0.0;
-        marker.points.push_back(new_vertex);
+      // Add node as first marker vertex
+      geometry_msgs::Point first_vertex;
+      first_vertex.x = node_iter->second.coords.x;
+      first_vertex.y = node_iter->second.coords.y;
+      first_vertex.z = 0.0;
+      marker.points.push_back(first_vertex);
+
+      // Check if a node has edges before plotting
+      if (node_iter->second.edges.size() > 0)
+      {
+        for (auto id_iter = node_iter->second.edges.begin(); id_iter != node_iter->second.edges.end(); id_iter++)
+        {
+          std::cout << "Next Node ID: " << id_iter->next_id << std::endl;
+          // Find Vertex for each ID
+          auto neighbor_iter = configurations.find(id_iter->next_id);
+
+          geometry_msgs::Point new_vertex;
+          new_vertex.x = neighbor_iter->second.coords.x;
+          new_vertex.y = neighbor_iter->second.coords.y;
+          new_vertex.z = 0.0;
+          marker.points.push_back(new_vertex);
+        }
+        // Push to Marker Array
+        marker_arr.markers.push_back(marker);
       }
-      // Push to Marker Array
-      marker_arr.markers.push_back(marker);
     }
   }
 

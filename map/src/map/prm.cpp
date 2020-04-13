@@ -18,8 +18,13 @@ namespace map
 	}
 
 	// PRM
-	void PRM::build_map(const int & n, const int & k, const double & thresh)
+	void PRM::build_map(const int & n, int & k, const double & thresh)
 	{
+		if (k > n)
+		{
+			std::cout << "[WARNING]: k > n. We have set k = n." << std::endl;
+			k = n;
+		}
 		// Following PRM Algorithm from Lavalle - Planning Algorithms
 
 		// Steps 1-2, empty Vertex and Edge List
@@ -43,12 +48,20 @@ namespace map
 		    	// Step 12: perform validity check
 		    	if (edge_valid(q->second, neighbor_iter->second, thresh))
 		    	{
+		    		std::cout << "VALID EDGE: " << "CONNECTING " << q->second.id << " AND " << neighbor_iter->second.id << std::endl;
 		    		// Step 13: add neighbour ID to set of connected edges
-		    		Edge edge;
-		    		edge.next_id = neighbor_iter->second.id;
-		    		edge.distance = euclidean_distance(q->second.coords.x - neighbor_iter->second.coords.x,\
-				   									   q->second.coords.y - neighbor_iter->second.coords.y);
-		    		q->second.edges.push_back(edge);
+		    		Edge qn_edge;
+		    		qn_edge.next_id = neighbor_iter->second.id;
+		    		qn_edge.distance = euclidean_distance(q->second.coords.x - neighbor_iter->second.coords.x,\
+				   									  	  q->second.coords.y - neighbor_iter->second.coords.y);
+		    		q->second.edges.push_back(qn_edge);
+
+		    		// Also do vice versa: add q to neighbour edges
+		    		Edge nq_edge;
+		    		nq_edge.next_id = q->second.id;
+		    		nq_edge.distance = qn_edge.distance;
+
+		    		neighbor_iter->second.edges.push_back(nq_edge);
 		    	}
 		    }
 	    }
@@ -59,7 +72,7 @@ namespace map
 		// MAP EXTENT
 		// std::cout << "Map Extent: (" << map_max.x << ", " << map_max.y << ")" << std::endl;
 		int kill_counter = 0;
-		while (static_cast<int>(configurations.size()) < n or kill_counter > 100 * n)
+		while (static_cast<int>(configurations.size()) < n or kill_counter > 1000 * n)
 		{
 			// Sample random number with assigned limits
 			std::uniform_real_distribution<double> dx(map_min.x, map_max.x);
@@ -114,21 +127,26 @@ namespace map
 
 	bool PRM::edge_valid(const Vertex & q, const Vertex & q_prime, const double & thresh)
 	{
-		// Check Edge Collision
-		if (!no_collision(q, q_prime, inflate_robot))
-		{
-			return false;
-		// Check if New Edge
-		} else if (q.edge_exists(q_prime.id))
-		{
-			return false;
 		// Check Distance Above Useful Threshold
-		} else if (euclidean_distance(q.coords.x - q_prime.coords.x,\
+		if (euclidean_distance(q.coords.x - q_prime.coords.x,\
 				   q.coords.y - q_prime.coords.y) < thresh)
 		{
 			return false;
-		} else
+		} else if (!no_collision(q, q_prime, inflate_robot))
+		// Check if Inflated Robot Intersects Polygon Edge or Path Edge intersects Polygon
 		{
+			return false;
+
+		// } else if (q.edge_exists(q_prime.id))
+		// // Check if New Edge
+		// {
+		// 	return false;
+
+		} else 
+		{
+			// std::cout << "q: (" << q.coords.x << ", " << q.coords.y << ")" << std::endl;
+			// std::cout << "q': (" << q_prime.coords.x << ", " << q_prime.coords.y << ")" << std::endl;
+			// std::cout << "FREE" << std::endl;
 			return true;
 		}
 	}
@@ -140,18 +158,17 @@ namespace map
 		for (auto obs_iter = obstacles.begin(); obs_iter != obstacles.end(); obs_iter++)
 		{
 			// Loop over all vertices and treat them as directional vectors.
-
 			// if q is ON ANY edge, then it is on an obstacle
-
 			// If q is on the left side of ALL edges, then it is inside an obstacle
 			bool on_all_left = true;
 
 			for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
 			{
-				// Vector from current and next vertex. so if 3 vertices: 0->1, 1->2, 2->3, 3->0
+				// Vector from current and next vertex. so if 4 vertices: 0->1, 1->2, 2->3, 3->0
 				// Record current index
 				int i = static_cast<int>(std::distance(obs_iter->vertices.begin(), v_iter));
 				// If current index is the last one, loop back to zero for vector construction
+				// -1 because indeces start at 0
 				if (i == static_cast<int>(obs_iter->vertices.size()) - 1)
 				{
 					i = 0;
@@ -170,6 +187,8 @@ namespace map
 				auto B = obs_iter->vertices.at(i);
 				auto P = q;
 				// u is perpendicular to AB. flip xs and ys and negate one component
+				// NOTE: if we have {x,y} --> {y, -x} = RHS perp. (outward normal) | {-y, x} = LHS perp. (inward normal)
+				// inward normal
 				Eigen::Vector2d u(-(B.y - A.y), B.x - A.x);
 				// dot product with AB = 0 to ensure orthogonal
 				Eigen::Vector2d AB(B.x - A.x, B.y - A.y);
@@ -214,10 +233,114 @@ namespace map
 		return free;
 	}
 
+	bool PRM::no_collision(const Vertex & q, const Vertex & q_prime, const std::vector<Obstacle>::iterator & obs_iter)
+	{
+		// Initialize tE/tL: the max/min entering/leaving segment parameters.
+		// NOTE: these evolve over time for each obstacle.
+		double tE = 0.0;
+		double tL = 1.0;
+		// Initialize dS: P0->P1 vector 
+		Eigen::Vector2d dS(q_prime.coords.x - q.coords.x, q_prime.coords.y - q.coords.y);
+		// Loop over all vertices and treat them as directional Edge vectors.
+		for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
+		{
+			// Vector from current and next vertex. so if 4 vertices: 0->1, 1->2, 2->3, 3->0
+			// Record current index
+			int i = static_cast<int>(std::distance(obs_iter->vertices.begin(), v_iter));
+			// If current index is the last one, loop back to zero for vector construction
+			// -1 because indeces start at 0
+			if (i == static_cast<int>(obs_iter->vertices.size()) - 1)
+			{
+				i = 0;
+			} else
+			// Otherwise, just use the next index
+			{
+				i += 1;
+			}
+
+			// Referencing: https://drive.google.com/file/d/1gQuR4J80aXZ9BBL1s3K83TmxQSWD3AWt/view?usp=sharing Slide 28
+			auto Vi = *v_iter;
+			auto Vip1 = obs_iter->vertices.at(i);
+			// edge i is Vi->Vi+1
+			Eigen::Vector2d ei(Vip1.x - Vi.x, Vip1.y - Vi.y);
+
+			// ni is the outward normal of the edge ei
+			// NOTE: if we have {x,y} --> {y, -x} = RHS perp. (outward normal) | {-y, x} = LHS perp. (inward normal)
+			// outward normal
+			Eigen::Vector2d ni(Vip1.y - Vi.y, -(Vip1.x - Vi.x));
+			if (!rigid2d::almost_equal(ei.dot(ni), 0.0))
+			{
+				throw std::runtime_error("ni is NOT orthogonal to ei!\
+										 \n  where(): PRM::no_collision(const Vertex &q, const Vertex & q_prime)");
+			}
+			double N = - ni.dot(Eigen::Vector2d(q.coords.x - Vi.x, q.coords.y - Vi.y));
+			double D = ni.dot(dS);
+
+			if (rigid2d::almost_equal(D, 0.0))
+			{
+				// Then q->q' is parallel to edge ei. Double condition to catch numerical errors
+				if (N < 0.0 and !(rigid2d::almost_equal(N, 0.0)))
+				{
+					// Then q is outside of polygon Obstacle.
+					return true; // Intersection not possible. Exit here.
+				} else {
+					// q->q' cannot enter/leave across edge ei. Process next edge
+					continue;
+				}
+			}
+			// Intersection time
+			double t = N / D;
+
+			if (D < 0.0)
+			{
+				// Then segment q->q' enters across edge ei
+				tE = std::max(tE, t);
+				if (tE > tL)
+				{
+					// Then the segment enters AFTER leaving. Intersection not possible on this edge.
+					return true;
+				}
+
+			} else {
+				// D > 0 in this case
+				// Then segment q->q' leaves across edge ei
+				tL = std::min(tL, t);
+				if (tL < tE)
+				{
+					// Then the segment leaves BEFORE entering. Intersection not possible on this edge.
+					return true;
+				}
+			}
+		}
+		// tE <= tL if we have not exited at an earlier edge.
+		// There is a valid intersection. Exit here. No need to check additional obstacles.
+		// Entering Point: P(tE) = q + tE * dS
+		// Leaving Point: P(tL) =  q + tL * dS
+		return false;
+	}
+
 	bool PRM::no_collision(const Vertex & q, const Vertex & q_prime, const double & inflate_robot)
 	{
-		// TODO
-		return true;
+		bool free = true;
+		// Loop over all obstacles
+		for (auto obs_iter = obstacles.begin(); obs_iter != obstacles.end(); obs_iter++)
+		{
+			int i = static_cast<int>(std::distance(obstacles.begin(), obs_iter));
+			// std::cout << "Obstacle #" << i << std::endl;
+			if (!no_collision(q, q_prime, obs_iter))
+				// Collision! Not a valid Edge, exit here.
+			{
+				return false;
+			} else {
+				// Check if inflated robot intersects edge
+				// TODO
+			}
+		}
+		// std::cout << "q: (" << q.coords.x << ", " << q.coords.y << ")" << "ID: " << q.id << std::endl;
+		// std::cout << "q': (" << q_prime.coords.x << ", " << q_prime.coords.y << ")" << "ID: " << q_prime.id << std::endl;
+		// std::cout << "FREE" << std::endl;
+		// std::cout << "---------------------------------------------" << std::endl;
+		return free;
 	}
 
 	std::unordered_map<int, Vertex> PRM::return_prm()

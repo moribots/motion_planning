@@ -13,8 +13,9 @@ namespace map
 
 	bool Vertex::edge_exists(const int & check_id) const
 	{
-		const auto search = id_set.find(check_id);
-		return (search == id_set.end()) ? false : true;
+		const auto search = edges.find(check_id);
+		// std::cout << "SEARCH " << search->second.next_id << std::endl;
+		return (search == edges.end()) ? false : true;
 	}
 
 	// PRM
@@ -37,31 +38,35 @@ namespace map
 		for (auto q = configurations.begin(); q != configurations.end(); q++)
 	    {
 	    	// Step 10: get k nearest neighbours. Key = First | Value = Second
-	    	find_knn(q->second, k);
+	    	find_knn(*q, k);
 
 	    	// Step 11: start inner loop for validity check
-	    	for (auto id_iter = q->second.id_set.begin(); id_iter != q->second.id_set.end(); id_iter++)
+	    	for (auto id_iter = q->id_set.begin(); id_iter != q->id_set.end(); id_iter++)
 		    {
 		    	// Search hash table for Vertex of corresponding ID. Returns iterator of <KEY,VALUE>
-		    	auto neighbor_iter = configurations.find(*id_iter);
+		    	auto neighbor_iter = configurations.at(*id_iter);
 
 		    	// Step 12: perform validity check
-		    	if (edge_valid(q->second, neighbor_iter->second, thresh))
+		    	if (edge_valid(*q, neighbor_iter, thresh))
 		    	{
-		    		std::cout << "VALID EDGE: " << "CONNECTING " << q->second.id << " AND " << neighbor_iter->second.id << std::endl;
+		    		std::cout << "VALID EDGE: " << "CONNECTING " << q->id << " AND " << neighbor_iter.id << std::endl;
+		    		std::cout << "q: (" << q->coords.x << ", " << q->coords.y << ")" << "ID: " << q->id << std::endl;
+					std::cout << "q': (" << neighbor_iter.coords.x << ", " << neighbor_iter.coords.y << ")" << "ID: " << neighbor_iter.id << std::endl;
+					std::cout << "---------------------------------------------" << std::endl;
+
 		    		// Step 13: add neighbour ID to set of connected edges
 		    		Edge qn_edge;
-		    		qn_edge.next_id = neighbor_iter->second.id;
-		    		qn_edge.distance = euclidean_distance(q->second.coords.x - neighbor_iter->second.coords.x,\
-				   									  	  q->second.coords.y - neighbor_iter->second.coords.y);
-		    		q->second.edges.push_back(qn_edge);
+		    		qn_edge.next_id = neighbor_iter.id;
+		    		qn_edge.distance = euclidean_distance(q->coords.x - neighbor_iter.coords.x,\
+				   									  	  q->coords.y - neighbor_iter.coords.y);
+		    		q->edges.insert({qn_edge.next_id, qn_edge});
 
 		    		// Also do vice versa: add q to neighbour edges
 		    		Edge nq_edge;
-		    		nq_edge.next_id = q->second.id;
+		    		nq_edge.next_id = q->id;
 		    		nq_edge.distance = qn_edge.distance;
 
-		    		neighbor_iter->second.edges.push_back(nq_edge);
+		    		neighbor_iter.edges.insert({nq_edge.next_id, nq_edge});
 		    	}
 		    }
 	    }
@@ -92,7 +97,7 @@ namespace map
 			if (no_collision(q))
 			{
 				// KEY, OBJECT
-				configurations.insert({q.id, q});
+				configurations.push_back(q);
 			} else {
 				// Increment kill counter if there's a collision
 				kill_counter++;
@@ -108,7 +113,7 @@ namespace map
 		configs.reserve(configurations.size());
 		for (auto q_iter = configurations.begin(); q_iter != configurations.end(); q_iter++)
 	    {
-	    	configs.push_back(q_iter->second);
+	    	configs.push_back(*q_iter);
 	    }
 		// using lambda for sort criterion. put q in [q] so it can be accessed
 		sort(configs.begin(), configs.end(), [q](const Vertex& lhs, const Vertex& rhs)
@@ -137,10 +142,10 @@ namespace map
 		{
 			return false;
 
-		// } else if (q.edge_exists(q_prime.id))
-		// // Check if New Edge
-		// {
-		// 	return false;
+		} else if (q.edge_exists(q_prime.id))
+		// Check if New Edge
+		{
+			return false;
 
 		} else 
 		{
@@ -343,7 +348,7 @@ namespace map
 		return free;
 	}
 
-	std::unordered_map<int, Vertex> PRM::return_prm()
+	std::vector<Vertex> PRM::return_prm()
 	{
 		return configurations;
 	}

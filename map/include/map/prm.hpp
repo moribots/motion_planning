@@ -30,7 +30,7 @@ namespace map
         // Cartesian Coordinates of Vertex
         Vector2D coords;
         // Edges connected to this node
-        std::vector<Edge> edges;
+        std::unordered_map<int, Edge> edges;
         // IDs of Adjacent Nodes
         // O(1) best case or O(n) worst case
         std::unordered_set<int> id_set;
@@ -96,10 +96,10 @@ namespace map
 
         // \brief Return Probabilistic Road Map
         // \returns Probabilistic Road Map 
-        std::unordered_map<int, Vertex> return_prm();
+        std::vector<Vertex> return_prm();
     private:
         // Hash Table
-        std::unordered_map<int, Vertex>  configurations;
+        std::vector<Vertex> configurations;
     };
 }
 

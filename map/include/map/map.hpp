@@ -5,6 +5,7 @@
 /// NOTE: rigid2d is from turtlebot3_from_scratch (tb3 in nuturtle.rosinstall)
 #include <rigid2d/rigid2d.hpp>
 #include <vector>
+#include <eigen3/Eigen/Dense>
 
 namespace map
 {

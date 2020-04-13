@@ -21,6 +21,8 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
 )
 
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -126,6 +128,7 @@ CATKIN_DEPENDS message_generation message_runtime rigid2d roscpp nuslam visualiz
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${Eigen3_INCLUDE_DIRS}
 )
 
 add_library(${PROJECT_NAME}
@@ -154,13 +157,14 @@ set_target_properties(viz_map PROPERTIES OUTPUT_NAME viz_map PREFIX "")
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(viz_map ${${PROJECT_NAME}_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(viz_map ${${PROJECT_NAME}_EXPORTED_TARGETS} ${Eigen3_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(
 viz_map # this is my node that will use below libraries
 ${rigid2d_LIBRARIES}
 ${nuslam_LIBRARIES}
+Eigen3::Eigen
 ${PROJECT_NAME}
 ${catkin_LIBRARIES}
 )

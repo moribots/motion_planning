@@ -2,10 +2,7 @@
 #define PRM_INCLUDE_GUARD_HPP
 /// \file
 /// \brief PRM Library to build a Probabilistic Roadmap.
-/// NOTE: rigid2d is from turtlebot3_from_scratch (tb3 in nuturtle.rosinstall)
-#include <rigid2d/rigid2d.hpp>
 #include <map/map.hpp>
-#include <vector>
 #include <unordered_set>
 #include <unordered_map>
 
@@ -79,8 +76,7 @@ namespace map
 
         // \brief Checks whether a potential Vertex lies on an Obstacle. 'map::PRM::sample_configurations' calls this function.
         // \param q: the Vertex being examined
-        // \param inflate_robot: approximate robot radius used for collision checking.
-        bool no_collision(const Vertex & q, const double & inflate_robot);
+        bool no_collision(const Vertex & q);
 
         // \brief Checks whether a potential Edge intersects an Obstacle. 'map::PRM::edge_valid' calls this function.
         // \param q: the main Vertex being examined

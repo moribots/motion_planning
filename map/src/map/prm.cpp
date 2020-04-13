@@ -58,7 +58,8 @@ namespace map
 	{
 		// MAP EXTENT
 		// std::cout << "Map Extent: (" << map_max.x << ", " << map_max.y << ")" << std::endl;
-		while (static_cast<int>(configurations.size()) < n)
+		int kill_counter = 0;
+		while (static_cast<int>(configurations.size()) < n or kill_counter > 100 * n)
 		{
 			// Sample random number with assigned limits
 			std::uniform_real_distribution<double> dx(map_min.x, map_max.x);
@@ -74,10 +75,14 @@ namespace map
 			// ID = position in vector. eg: (0 elements) -> ID = 0 (first one)
 			q.id = static_cast<int>(configurations.size());
 
-			if (no_collision(q, inflate_robot))
+			// Ensure to free-space collison
+			if (no_collision(q))
 			{
 				// KEY, OBJECT
 				configurations.insert({q.id, q});
+			} else {
+				// Increment kill counter if there's a collision
+				kill_counter++;
 			}
 		}
 	}
@@ -128,10 +133,85 @@ namespace map
 		}
 	}
 
-	bool PRM::no_collision(const Vertex & q, const double & inflate_robot)
+	bool PRM::no_collision(const Vertex & q)
 	{
-		// TODO
-		return true;
+		bool free = true;
+		// Loop over all obstacles
+		for (auto obs_iter = obstacles.begin(); obs_iter != obstacles.end(); obs_iter++)
+		{
+			// Loop over all vertices and treat them as directional vectors.
+
+			// if q is ON ANY edge, then it is on an obstacle
+
+			// If q is on the left side of ALL edges, then it is inside an obstacle
+			bool on_all_left = true;
+
+			for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
+			{
+				// Vector from current and next vertex. so if 3 vertices: 0->1, 1->2, 2->3, 3->0
+				// Record current index
+				int i = static_cast<int>(std::distance(obs_iter->vertices.begin(), v_iter));
+				// If current index is the last one, loop back to zero for vector construction
+				if (i == static_cast<int>(obs_iter->vertices.size()) - 1)
+				{
+					i = 0;
+				} else
+				// Otherwise, just use the next index
+				{
+					i += 1;
+				}
+
+				// Referencing: https://drive.google.com/file/d/1gQuR4J80aXZ9BBL1s3K83TmxQSWD3AWt/view?usp=sharing Slide 32
+				// v_iter is A
+				// obs_iter->vertices.at(i) is B
+				// DIRECTION is A->B
+				// q is P
+				auto A = *v_iter;
+				auto B = obs_iter->vertices.at(i);
+				auto P = q;
+				// u is perpendicular to AB. flip xs and ys and negate one component
+				Eigen::Vector2d u(-(B.y - A.y), B.x - A.x);
+				// dot product with AB = 0 to ensure orthogonal
+				Eigen::Vector2d AB(B.x - A.x, B.y - A.y);
+				double ABu_test = AB.dot(u);
+				// std::cout << "AB u TEST: " << ABu_test << std::endl;
+				if (!rigid2d::almost_equal(ABu_test, 0.0))
+				{
+					throw std::runtime_error("u is NOT orthogonal to AB!\
+											 \n  where(): PRM::no_collision(const Vertex &q)");
+				}
+
+				// n is the normal vector of u
+				auto n = u.normalized(); // .normalize() for in place
+				// D is vector A->P
+				Eigen::Vector2d D(P.coords.x - A.x, P.coords.y - A.y);
+				// Finally, d = D*n (dot product) gives us the minimum distance from AB to P
+
+				// if d > 0, P is on the left of AB, if d = 0, P is ON AB, if d < 0, P is on the right of AB
+				double d = D.dot(n);
+
+				// std::cout << "d: " << d << std::endl;
+
+				if (d < 0.0)
+					// P is on the right side of at least one edge, not necessarily on obstacle
+				{
+					on_all_left = false;
+				} else if (rigid2d::almost_equal(d, 0.0))
+					// if P is on an edge of an obstacle, it is disqualified immediately
+				{
+					free = false;
+				}
+			}
+
+			// is q is on the inside of all the edges of an obstacle, it is not free (disqualified)
+			if (on_all_left)
+			{
+				free = false;
+			}
+
+		}
+
+		return free;
 	}
 
 	bool PRM::no_collision(const Vertex & q, const Vertex & q_prime, const double & inflate_robot)

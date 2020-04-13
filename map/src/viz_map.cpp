@@ -102,13 +102,6 @@ int main(int argc, char** argv)
     }
   }
 
-  // Create Map
-  map::Map map(obstacles_v);
-
-  // Build PRM
-  map::PRM prm(obstacles_v);
-  prm.build_map(n, k, thresh);
-
   // Initialize Marker
   // Init Marker Array Publisher
   ros::Publisher marker_pub = nh.advertise<visualization_msgs::MarkerArray>("viz_map", 1);
@@ -156,6 +149,7 @@ int main(int argc, char** argv)
   if (map_type == "map")
   {
     // DRAW MAP
+    map::Map map(obstacles_v);
     // Now, loop through obstacles in map to create line strips.
     // Each obstacle = 1 line strip
     for (auto obs_iter = obstacles_v.begin(); obs_iter != obstacles_v.end(); obs_iter++)
@@ -181,6 +175,9 @@ int main(int argc, char** argv)
     }
   } else if (map_type == "prm")
   {
+    // Build PRM
+    map::PRM prm(obstacles_v);
+    prm.build_map(n, k, thresh);
     // DRAW PRM
     auto configurations = prm.return_prm();
     for (auto node_iter = configurations.begin(); node_iter != configurations.end(); node_iter++)

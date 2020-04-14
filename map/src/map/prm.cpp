@@ -187,14 +187,6 @@ namespace map
 				auto B = obs_iter->vertices.at(i);
 				auto P = q;
 
-				// First, check if a potential Vertex is too close to an obstacle Edge
-				Vertex A_vtx(A);
-				Vertex B_vtx(B);
-				if ((too_close(A_vtx, B_vtx, P, inflate_robot)))
-				{
-					return false;
-				}
-
 				// u is perpendicular to AB. flip xs and ys and negate one component
 				// NOTE: if we have {x,y} --> {y, -x} = RHS perp. (outward normal) | {-y, x} = LHS perp. (inward normal)
 				// inward normal
@@ -218,8 +210,9 @@ namespace map
 				// if d > 0, P is on the left of AB, if d = 0, P is ON AB, if d < 0, P is on the right of AB
 				double d = D.dot(n);
 
-				if (d < 0.0)
-					// P is on the right side of at least one edge, not necessarily on obstacle
+				if (d < - inflate_robot)
+					// P is on the right side of at least one edge PLUS buffer, not necessarily on obstacle
+					// Only way this can be an obstacle now is if it's ON and edge (next condition)
 				{
 					on_all_left = false;
 				} else if (rigid2d::almost_equal(d, 0.0))

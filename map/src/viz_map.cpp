@@ -106,10 +106,12 @@ int main(int argc, char** argv)
 
   // Initialize Marker
   // Init Marker Array Publisher
-  ros::Publisher marker_pub = nh.advertise<visualization_msgs::MarkerArray>("viz_map", 1);
+  ros::Publisher line_pub = nh.advertise<visualization_msgs::MarkerArray>("line_map", 1);
+  ros::Publisher sph_pub = nh.advertise<visualization_msgs::MarkerArray>("sph_map", 1);
 
   // Init Marker Array
-  visualization_msgs::MarkerArray marker_arr;
+  visualization_msgs::MarkerArray line_arr;
+  visualization_msgs::MarkerArray sph_arr;
 
   // Init Marker
   visualization_msgs::Marker marker;
@@ -131,22 +133,37 @@ int main(int argc, char** argv)
   marker.color.a = 1.0;
   marker.lifetime = ros::Duration();
 
+  visualization_msgs::Marker sph_mkr;
+  sph_mkr = marker;
+  sph_mkr.type = visualization_msgs::Marker::SPHERE;
+  sph_mkr.scale.x = 0.02;
+  sph_mkr.scale.y = 0.02;
+  sph_mkr.scale.z = 0.02;
+
   // Color based on map_type
   if (map_type == "map")
   {
     marker.color.r = 0.5f;
     marker.color.g = 0.0f;
     marker.color.b = 0.5f;
+    sph_mkr.color.r = 0.96f;
+    sph_mkr.color.g = 0.475f;
+    sph_mkr.color.b = 0.0f;
   } else if (map_type == "prm")
   {
     marker.color.r = 0.96f;
     marker.color.g = 0.475f;
     marker.color.b = 0.0f;
+    sph_mkr.color.r = 0.5f;
+    sph_mkr.color.g = 0.0f;
+    sph_mkr.color.b = 0.5f;
   }
 
   // LINE_STRIP relative to this pose
   marker.pose.position.x = 0.0;
   marker.pose.position.y = 0.0;
+
+  int sph_mkr_id = 0;
 
   if (map_type == "map")
   {
@@ -166,6 +183,13 @@ int main(int argc, char** argv)
         new_vertex.y = v_iter->y;
         new_vertex.z = 0.0;
         marker.points.push_back(new_vertex);
+        
+        // Also push back cylinders
+        sph_mkr.pose.position.x = v_iter->x;
+        sph_mkr.pose.position.y = v_iter->y;
+        sph_mkr.id = sph_mkr_id;
+        sph_mkr_id++;
+        sph_arr.markers.push_back(sph_mkr);
       }
       // Before pushing back, connect last vertex to first vertex
       geometry_msgs::Point new_vertex;
@@ -173,7 +197,7 @@ int main(int argc, char** argv)
       new_vertex.y = obs_iter->vertices.at(0).y;
       new_vertex.z = 0.0;
       marker.points.push_back(new_vertex);
-      marker_arr.markers.push_back(marker);
+      line_arr.markers.push_back(marker);
     }
   } else if (map_type == "prm")
   {
@@ -207,9 +231,16 @@ int main(int argc, char** argv)
           new_vertex.y = neighbor_iter.coords.y;
           new_vertex.z = 0.0;
           marker.points.push_back(new_vertex);
+
+          // Also push back cylinders
+          sph_mkr.pose.position.x = node_iter->coords.x;
+          sph_mkr.pose.position.y = node_iter->coords.y;
+          sph_mkr.id = sph_mkr_id;
+          sph_mkr_id++;
+          sph_arr.markers.push_back(sph_mkr);
         }
         // Push to Marker Array
-        marker_arr.markers.push_back(marker);
+        line_arr.markers.push_back(marker);
       }
     }
   }
@@ -222,7 +253,8 @@ int main(int argc, char** argv)
   	ros::spinOnce();
 
     // Publish Map
-    marker_pub.publish(marker_arr);
+    line_pub.publish(line_arr);
+    sph_pub.publish(sph_arr);
 
     rate.sleep();
   }

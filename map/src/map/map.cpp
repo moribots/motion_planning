@@ -18,7 +18,7 @@ namespace map
 	Map::Map()
 	{
 		find_map_extent();
-		inflate_robot = 0.5;
+		inflate_robot = 0.2;
 	}
 
 	Map::Map(const std::vector<Obstacle> & obstacles_)
@@ -27,7 +27,7 @@ namespace map
 
 		find_map_extent();
 
-		inflate_robot = 0.5;
+		inflate_robot = 0.2;
 	}
 
 	Map::Map(const std::vector<Obstacle> & obstacles_, const double inflate_robot_)

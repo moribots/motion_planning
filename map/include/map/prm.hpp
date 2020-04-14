@@ -94,6 +94,13 @@ namespace map
         // \param inflate_robot: approximate robot radius used for collision checking.
         bool no_collision(const Vertex & q, const Vertex & q_prime, const double & inflate_robot);
 
+        // \brief Checks if a Vertex is too close to an Edge.
+        // \param E1: the first Vertex forming an edge
+        // \param E2: the second Vertex forming an edge
+        // \param P0: the Vertex whose closeness is being examined.
+        // \param inflate_robot: approximate robot radius used for collision checking.
+        bool too_close(const Vertex & E1, const Vertex & E2, const Vertex & P0, const double & inflate_robot);
+
         // \brief Return Probabilistic Road Map
         // \returns Probabilistic Road Map 
         std::vector<Vertex> return_prm();

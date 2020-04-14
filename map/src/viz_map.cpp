@@ -42,6 +42,7 @@ int main(int argc, char** argv)
   int n = 10;
   int k = 5;
   double thresh = 0.01;
+  double inflate = 0.05;
   std::string map_type = "map";
 
   // store Obstacle(s) here to create Map
@@ -57,6 +58,7 @@ int main(int argc, char** argv)
   nh_.getParam("n", n);
   nh_.getParam("k", k);
   nh_.getParam("thresh", thresh);
+  nh_.getParam("inflate", inflate);
   nh_.getParam("map_type", map_type);
 
   // 'obstacles' is a triple-nested list.
@@ -122,7 +124,7 @@ int main(int argc, char** argv)
   marker.pose.orientation.y = 0.0;
   marker.pose.orientation.z = 0.0;
   marker.pose.orientation.w = 1.0;
-  marker.scale.x = 0.05;
+  marker.scale.x = 0.02;
   marker.color.r = 0.5f;
   marker.color.g = 0.0f;
   marker.color.b = 0.5f;
@@ -176,7 +178,7 @@ int main(int argc, char** argv)
   } else if (map_type == "prm")
   {
     // Build PRM
-    map::PRM prm(obstacles_v);
+    map::PRM prm(obstacles_v, inflate);
     prm.build_map(n, k, thresh);
     // DRAW PRM
     auto configurations = prm.return_prm();

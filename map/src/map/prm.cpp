@@ -186,6 +186,15 @@ namespace map
 				auto A = *v_iter;
 				auto B = obs_iter->vertices.at(i);
 				auto P = q;
+
+				// First, check if a potential Vertex is too close to an obstacle Edge
+				Vertex A_vtx(A);
+				Vertex B_vtx(B);
+				if ((too_close(A_vtx, B_vtx, P, inflate_robot)))
+				{
+					return false;
+				}
+
 				// u is perpendicular to AB. flip xs and ys and negate one component
 				// NOTE: if we have {x,y} --> {y, -x} = RHS perp. (outward normal) | {-y, x} = LHS perp. (inward normal)
 				// inward normal
@@ -216,7 +225,7 @@ namespace map
 				} else if (rigid2d::almost_equal(d, 0.0))
 					// if P is on an edge of an obstacle, it is disqualified immediately
 				{
-					free = false;
+					return false;
 				}
 			}
 
@@ -323,7 +332,7 @@ namespace map
 		// Loop over all obstacles
 		for (auto obs_iter = obstacles.begin(); obs_iter != obstacles.end(); obs_iter++)
 		{
-			int i = static_cast<int>(std::distance(obstacles.begin(), obs_iter));
+			// int i = static_cast<int>(std::distance(obstacles.begin(), obs_iter));
 			// std::cout << "Obstacle #" << i << std::endl;
 			if (!no_collision(q, q_prime, obs_iter))
 				// Collision! Not a valid Edge, exit here.
@@ -331,10 +340,53 @@ namespace map
 				return false;
 			} else {
 				// Check if inflated robot intersects edge
-				// TODO
+				for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
+				{
+					// std::cout << "---------------------------------------------" << std::endl;
+					// std::cout << "q: (" << q.coords.x << ", " << q.coords.y << ")" << "\tID: " << q.id << std::endl;
+					// std::cout << "q': (" << q_prime.coords.x << ", " << q_prime.coords.y << ")" << "\tID: " << q_prime.id << std::endl;
+					// If one Vertex is to close to an Edge, return false and Exit. Otherwise keep checking.
+					if (too_close(q, q_prime, Vertex(*v_iter), inflate_robot))
+					{
+						return false;
+					}
+				}
 			}
 		}
 		return free;
+	}
+
+	bool PRM::too_close(const Vertex & E1, const Vertex & E2, const Vertex & P0, const double & inflate_robot)
+	{
+		// Referencing: https://docs.google.com/presentation/d/1gQuR4J80aXZ9BBL1s3K83TmxQSWD3AWt/edit#slide=id.g731274b3d5_0_94 Slide 33
+		Eigen::Vector2d P1(E1.coords.x, E1.coords.y);
+		Eigen::Vector2d P2(E2.coords.x, E2.coords.y);
+		Eigen::Vector2d P3(P0.coords.x, P0.coords.y);
+
+		// std::cout << "VTX: (" << P3(0) << ", " << P3(1) << ")" << std::endl;
+
+		double u = ((P3(0) - P1(0)) * (P2(0) - P1(0)) + (P3(1) - P1(1)) * (P2(1) - P1(1)))\
+					/ Eigen::Vector2d(P2(0) - P1(0), P2(1) - P1(1)).squaredNorm();
+
+		// std::cout << "u: " << u << std::endl;
+
+		if (u > 0.0 and u < 1.0)
+		{
+			// the Polygon Vertex is somwhere on the segment, so analysis check is valid
+			Eigen::Vector2d closest_point(P1(0) + u * (P2(0) - P1(0)), P1(1) + u * (P2(1) - P1(1)));
+			Eigen::Vector2d dist(P3(0) - closest_point(0), P3(1) - closest_point(1));
+
+			// std::cout << "dist: " << dist.norm() << std::endl;
+
+			if (dist.norm() < inflate_robot)
+			{
+				// The PRM Edge is too close to the Polygon Vertex
+				// std::cout << "TOO CLOSE" << std::endl;
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	std::vector<Vertex> PRM::return_prm()

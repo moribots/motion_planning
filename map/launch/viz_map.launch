@@ -39,8 +39,10 @@
   <node name="viz_prm" pkg="map" type="viz_map" output="screen">
     <rosparam command="load" file="$(find map)/config/map.yaml"/>
     <param name="map_type" value="prm"/>
-    <param name="n" value="1000"/>
+    <param name="n" value="500"/>
+    <param name="k" value="5"/>
     <param name="thresh" value="0.1"/>
+    <param name="inflate" value="0.1"/>
     <remap from="viz_map" to="viz_prm"/>
   </node>
 

@@ -40,7 +40,7 @@
     <rosparam command="load" file="$(find map)/config/map.yaml"/>
     <param name="map_type" value="prm"/>
     <param name="n" value="500"/>
-    <param name="k" value="5"/>
+    <param name="k" value="20"/>
     <param name="thresh" value="0.1"/>
     <param name="inflate" value="0.1"/>
     <remap from="viz_map" to="viz_prm"/>

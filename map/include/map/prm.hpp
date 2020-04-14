@@ -30,7 +30,7 @@ namespace map
         // Cartesian Coordinates of Vertex
         Vector2D coords;
         // Edges connected to this node
-        std::unordered_map<int, Edge> edges;
+        std::vector<Edge> edges;
         // IDs of Adjacent Nodes
         // O(1) best case or O(n) worst case
         std::unordered_set<int> id_set;
@@ -69,7 +69,7 @@ namespace map
         // \param q: the Vertex being examined. Not const because id_set is modified.
         // \param k: number of closest neighbours to examine for each configuration.
         // NOTE: Using Brute Force Now, replace with KD-Tree + Rebalance
-        void find_knn(Vertex & q, const int & k);
+        std::vector<Vertex> find_knn(Vertex & q, const int & k);
 
         // \brief Check is the Edge between two nodes is valid (no collision, and above some euclidean distance)
         // \param q: the main Vertex being examined

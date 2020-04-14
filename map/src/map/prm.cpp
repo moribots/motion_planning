@@ -13,9 +13,8 @@ namespace map
 
 	bool Vertex::edge_exists(const int & check_id) const
 	{
-		const auto search = edges.find(check_id);
-		// std::cout << "SEARCH " << search->second.next_id << std::endl;
-		return (search == edges.end()) ? false : true;
+		const auto search = id_set.find(check_id);
+		return (search == id_set.end()) ? false : true;
 	}
 
 	// PRM
@@ -37,36 +36,34 @@ namespace map
 		// Step 9: start loop for validity check
 		for (auto q = configurations.begin(); q != configurations.end(); q++)
 	    {
-	    	// Step 10: get k nearest neighbours. Key = First | Value = Second
-	    	find_knn(*q, k);
+	    	// Step 10: get k nearest neighbours
+	    	auto knn = find_knn(*q, k);
 
 	    	// Step 11: start inner loop for validity check
-	    	for (auto id_iter = q->id_set.begin(); id_iter != q->id_set.end(); id_iter++)
+	    	for (auto id_iter = knn.begin(); id_iter != knn.end(); id_iter++)
 		    {
-		    	// Search hash table for Vertex of corresponding ID. Returns iterator of <KEY,VALUE>
-		    	auto neighbor_iter = configurations.at(*id_iter);
+		    	// Search for Vertex of corresponding ID
+		    	auto neighbor_ptr = &configurations.at(id_iter->id);
 
 		    	// Step 12: perform validity check
-		    	if (edge_valid(*q, neighbor_iter, thresh))
+		    	if (edge_valid(*q, *neighbor_ptr, thresh))
 		    	{
-		    		std::cout << "VALID EDGE: " << "CONNECTING " << q->id << " AND " << neighbor_iter.id << std::endl;
-		    		std::cout << "q: (" << q->coords.x << ", " << q->coords.y << ")" << "ID: " << q->id << std::endl;
-					std::cout << "q': (" << neighbor_iter.coords.x << ", " << neighbor_iter.coords.y << ")" << "ID: " << neighbor_iter.id << std::endl;
-					std::cout << "---------------------------------------------" << std::endl;
-
-		    		// Step 13: add neighbour ID to set of connected edges
+		    		// Step 13: add neighbor ID to set of connected edges
 		    		Edge qn_edge;
-		    		qn_edge.next_id = neighbor_iter.id;
-		    		qn_edge.distance = euclidean_distance(q->coords.x - neighbor_iter.coords.x,\
-				   									  	  q->coords.y - neighbor_iter.coords.y);
-		    		q->edges.insert({qn_edge.next_id, qn_edge});
+		    		qn_edge.next_id = neighbor_ptr->id;
+		    		qn_edge.distance = euclidean_distance(q->coords.x - neighbor_ptr->coords.x,\
+				   									  	  q->coords.y - neighbor_ptr->coords.y);
+		    		// Add to edges and id_set
+		    		q->edges.push_back(qn_edge);
+		    		q->id_set.insert(qn_edge.next_id);
 
-		    		// Also do vice versa: add q to neighbour edges
+		    		// Also do vice versa: add q to neighbor edges
 		    		Edge nq_edge;
 		    		nq_edge.next_id = q->id;
 		    		nq_edge.distance = qn_edge.distance;
-
-		    		neighbor_iter.edges.insert({nq_edge.next_id, nq_edge});
+		    		// Add to edges and id_set
+		    		neighbor_ptr->edges.push_back(nq_edge);
+		    		neighbor_ptr->id_set.insert(nq_edge.next_id);
 		    	}
 		    }
 	    }
@@ -105,7 +102,7 @@ namespace map
 		}
 	}
 
-	void PRM::find_knn(Vertex & q, const int & k)
+	std::vector<Vertex> PRM::find_knn(Vertex & q, const int & k)
 	{
 		// First, order set in ascending distance from q order
 		// copy into vector to use sort fcn
@@ -124,34 +121,32 @@ namespace map
 		});
 
 		// Now, assign IDs of first k elements
+		std::vector<Vertex> knn;
 		for (int i = 0; i < k; i++)
 		{
-			q.id_set.insert(configs.at(i).id);
+			knn.push_back(configs.at(i));
 		}
+
+		return knn;
 	}
 
 	bool PRM::edge_valid(const Vertex & q, const Vertex & q_prime, const double & thresh)
 	{
-		// Check Distance Above Useful Threshold
-		if (euclidean_distance(q.coords.x - q_prime.coords.x,\
+		// Check if New Edge
+		if (q.edge_exists(q_prime.id))
+		{
+			return false;
+		} else if (euclidean_distance(q.coords.x - q_prime.coords.x,\
 				   q.coords.y - q_prime.coords.y) < thresh)
+		// Check Distance Above Useful Threshold
 		{
 			return false;
 		} else if (!no_collision(q, q_prime, inflate_robot))
 		// Check if Inflated Robot Intersects Polygon Edge or Path Edge intersects Polygon
 		{
 			return false;
-
-		} else if (q.edge_exists(q_prime.id))
-		// Check if New Edge
-		{
-			return false;
-
 		} else 
 		{
-			// std::cout << "q: (" << q.coords.x << ", " << q.coords.y << ")" << std::endl;
-			// std::cout << "q': (" << q_prime.coords.x << ", " << q_prime.coords.y << ")" << std::endl;
-			// std::cout << "FREE" << std::endl;
 			return true;
 		}
 	}
@@ -213,8 +208,6 @@ namespace map
 
 				// if d > 0, P is on the left of AB, if d = 0, P is ON AB, if d < 0, P is on the right of AB
 				double d = D.dot(n);
-
-				// std::cout << "d: " << d << std::endl;
 
 				if (d < 0.0)
 					// P is on the right side of at least one edge, not necessarily on obstacle
@@ -341,10 +334,6 @@ namespace map
 				// TODO
 			}
 		}
-		// std::cout << "q: (" << q.coords.x << ", " << q.coords.y << ")" << "ID: " << q.id << std::endl;
-		// std::cout << "q': (" << q_prime.coords.x << ", " << q_prime.coords.y << ")" << "ID: " << q_prime.id << std::endl;
-		// std::cout << "FREE" << std::endl;
-		// std::cout << "---------------------------------------------" << std::endl;
 		return free;
 	}
 

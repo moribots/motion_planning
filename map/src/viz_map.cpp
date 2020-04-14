@@ -184,13 +184,11 @@ int main(int argc, char** argv)
     {
       marker.points.clear();
       marker.id = std::distance(configurations.begin(), node_iter);
-      std::cout << "---------------------------------------------" << std::endl;
-      std::cout << "NODE: " << marker.id << std::endl;
 
       // Check if a node has edges before plotting
-      if (node_iter->edges.size() > 0)
+      if (node_iter->id_set.size() > 0)
       {
-        for (auto id_iter = node_iter->edges.begin(); id_iter != node_iter->edges.end(); id_iter++)
+        for (auto id_iter = node_iter->id_set.begin(); id_iter != node_iter->id_set.end(); id_iter++)
         {
           // Add node as first marker vertex
           geometry_msgs::Point first_vertex;
@@ -199,9 +197,8 @@ int main(int argc, char** argv)
           first_vertex.z = 0.0;
           marker.points.push_back(first_vertex);
 
-          std::cout << "Next Node ID: " << id_iter->second.next_id << std::endl;
           // Find Vertex for each ID
-          auto neighbor_iter = configurations.at(id_iter->second.next_id);
+          auto neighbor_iter = configurations.at(*id_iter);
 
           geometry_msgs::Point new_vertex;
           new_vertex.x = neighbor_iter.coords.x;

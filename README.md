@@ -7,9 +7,11 @@ Completed:
 * The `map` package:
 	- Standard Obstacle Map
 	- Probabilistic Roadmap
+
 	![PRM](map/media/prm.png)
 
 	- Tunable-resolution Grid Map
+
 	![GRID](map/media/grid.png)
 
 In progress:

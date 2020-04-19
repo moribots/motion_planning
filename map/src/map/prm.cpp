@@ -253,9 +253,6 @@ namespace map
 				// Check if inflated robot intersects edge
 				for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
 				{
-					// std::cout << "---------------------------------------------" << std::endl;
-					// std::cout << "q: (" << q.coords.x << ", " << q.coords.y << ")" << "\tID: " << q.id << std::endl;
-					// std::cout << "q': (" << q_prime.coords.x << ", " << q_prime.coords.y << ")" << "\tID: " << q_prime.id << std::endl;
 					// If one Vertex is to close to an Edge, return false and Exit. Otherwise keep checking.
 					if (too_close(q, q_prime, Vertex(*v_iter), inflate_robot))
 					{
@@ -303,35 +300,16 @@ namespace map
 				auto B = obs_iter->vertices.at(i);
 				auto P = q;
 
-				// u is perpendicular to AB. flip xs and ys and negate one component
-				// NOTE: if we have {x,y} --> {y, -x} = RHS perp. (outward normal) | {-y, x} = LHS perp. (inward normal)
-				// inward normal
-				Eigen::Vector2d u(-(B.y - A.y), B.x - A.x);
-				// dot product with AB = 0 to ensure orthogonal
-				Eigen::Vector2d AB(B.x - A.x, B.y - A.y);
-				double ABu_test = AB.dot(u);
-				// std::cout << "AB u TEST: " << ABu_test << std::endl;
-				if (!rigid2d::almost_equal(ABu_test, 0.0))
-				{
-					throw std::runtime_error("u is NOT orthogonal to AB!\
-											 \n  where(): PRM::no_collision(const Vertex &q)");
-				}
+				// see lineToPoint: determine whether point is on line segment, find closest point on line,
+				// and determine signed distance
+				auto shrt = lineToPoint(Vertex(A), Vertex(B), Vertex(P.coords));
 
-				// n is the normal vector of u
-				auto n = u.normalized(); // .normalize() for in place
-				// D is vector A->P
-				Eigen::Vector2d D(P.coords.x - A.x, P.coords.y - A.y);
-				// Finally, d = D*n (dot product) gives us the minimum distance from AB to P
-
-				// if d > 0, P is on the left of AB, if d = 0, P is ON AB, if d < 0, P is on the right of AB
-				double d = D.dot(n);
-
-				if (d < - inflate_robot)
+				if (shrt.D < - inflate_robot)
 					// P is on the right side of at least one edge PLUS buffer, not necessarily on obstacle
 					// Only way this can be an obstacle now is if it's ON and edge (next condition)
 				{
 					on_all_left = false;
-				} else if (rigid2d::almost_equal(d, 0.0))
+				} else if (rigid2d::almost_equal(shrt.D, 0.0))
 					// if P is on an edge of an obstacle, it is disqualified immediately
 				{
 					return false;
@@ -356,20 +334,13 @@ namespace map
 		Eigen::Vector2d P2(E2.coords.x, E2.coords.y);
 		Eigen::Vector2d P3(P0.coords.x, P0.coords.y);
 
-		// std::cout << "VTX: (" << P3(0) << ", " << P3(1) << ")" << std::endl;
+		auto shrt = lineToPoint(E1, E2, P0);
 
-		double u = ((P3(0) - P1(0)) * (P2(0) - P1(0)) + (P3(1) - P1(1)) * (P2(1) - P1(1)))\
-					/ Eigen::Vector2d(P2(0) - P1(0), P2(1) - P1(1)).squaredNorm();
-
-		// std::cout << "u: " << u << std::endl;
-
-		if (u > 0.0 and u < 1.0)
+		if (shrt.u >= 0.0 and shrt.u <= 1.0)
 		{
 			// the Polygon Vertex is somwhere on the segment, so analysis check is valid
-			Eigen::Vector2d closest_point(P1(0) + u * (P2(0) - P1(0)), P1(1) + u * (P2(1) - P1(1)));
-			Eigen::Vector2d dist(P3(0) - closest_point(0), P3(1) - closest_point(1));
-
-			// std::cout << "dist: " << dist.norm() << std::endl;
+			// get distance to closest point
+			Eigen::Vector2d dist(P3(0) - shrt.point.x, P3(1) - shrt.point.y);
 
 			if (dist.norm() < inflate_robot)
 			{
@@ -380,6 +351,47 @@ namespace map
 		}
 
 		return false;
+	}
+
+	ShortestDistance lineToPoint(const Vertex & E1, const Vertex & E2, const Vertex & P0)
+	{
+		// Declare struct for storage
+		ShortestDistance shrt;
+
+		// Referencing: https://docs.google.com/presentation/d/1gQuR4J80aXZ9BBL1s3K83TmxQSWD3AWt/edit#slide=id.g731274b3d5_0_94 Slide 33
+		Eigen::Vector2d P1(E1.coords.x, E1.coords.y);
+		Eigen::Vector2d P2(E2.coords.x, E2.coords.y);
+		Eigen::Vector2d P3(P0.coords.x, P0.coords.y);
+
+		// Step 1. determine whether point is on line segment by finding u
+		shrt.u = ((P3(0) - P1(0)) * (P2(0) - P1(0)) + (P3(1) - P1(1)) * (P2(1) - P1(1)))\
+					/ Eigen::Vector2d(P2(0) - P1(0), P2(1) - P1(1)).squaredNorm();
+		// Step 2. Determine closest point
+		shrt.point = Vector2D(P1(0) + shrt.u * (P2(0) - P1(0)), P1(1) + shrt.u * (P2(1) - P1(1)));
+
+		// Step 3. find the signed distance between P3 and line P1->P2 (more informative than the norm)
+		// u is perpendicular to P1->P2. flip xs and ys and negate one component
+		// NOTE: if we have {x,y} --> {y, -x} = RHS perp. (outward normal) | {-y, x} = LHS perp. (inward normal)
+		// inward normal
+		Eigen::Vector2d u(-(P2(1) - P1(1)), P2(0) - P1(0));
+		// dot product with P1->P2 = 0 to ensure orthogonal
+		Eigen::Vector2d Segment(P2(0) - P1(0), P2(1) - P1(1));
+		double Segu_test = Segment.dot(u);
+		if (!rigid2d::almost_equal(Segu_test, 0.0))
+		{
+			throw std::runtime_error("u is NOT orthogonal to P1->P2!\
+									 \n  where(): map::lineToPoint(const Vertex & E1, const Vertex & E2, const Vertex & P0, const double & inflate_robot)");
+		}
+
+		// n is the normal vector of u
+		auto n = u.normalized(); // .normalize() for in place
+		// D is vector P1->P3
+		Eigen::Vector2d D(P3(0) - P1(0), P3(1) - P1(1));
+		// Finally, D*n (dot product) gives us the minimum signed distance from P1->P2 to P
+		// if d > 0, P is on the left of P1->P2, if d = 0, P is ON P1->P2, if d < 0, P is on the right of AB
+		shrt.D = D.dot(n);
+
+		return shrt;
 	}
 
 	std::vector<Vertex> PRM::return_prm()

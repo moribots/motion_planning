@@ -44,6 +44,15 @@ namespace map
         bool edge_exists(const int & check_id) const;
     };
 
+    // \brief struct to store important attributes of the shortest distance from a point to a line segment
+    struct ShortestDistance
+    {
+        Vector2D point; // The point whose shortest distance to a line segment is computed.
+        double u; // A point is within a line segment if u is between [0,1]
+        double D; // The signed shotrest distance distance from the point to the line segment.
+        // if D > 0, the point is on the left-hand side of the line segment from Vertex 1 to Vertex 2 
+    };
+
     /// \brief stores Obstacle(s) to construct basic PRM. Inherits from Map in map.hpp.
     class PRM : public Map
     {
@@ -90,6 +99,14 @@ namespace map
         // \param inflate_robot: approximate robot radius used for collision checking.
         bool no_collision(const Vertex & q, const Vertex & q_prime, const double & inflate_robot);
 
+        // \brief computes the shortest distance from a line to a point and returns the result in an informative struct.
+        // \param E1: the first Vertex forming an edge
+        // \param E2: the second Vertex forming an edge
+        // \param P0: the Vertex whose closeness is being examined.
+        // \param inflate_robot: approximate robot radius used for collision checking.
+        // \returns ShortestDistance struct
+        friend ShortestDistance lineToPoint(const Vertex & E1, const Vertex & E2, const Vertex & P0, const double & inflate_robot);
+
         // \brief Checks whether a potential Vertex lies on an Obstacle. 'map::PRM::sample_configurations' calls this function.
         // \param q: the Vertex being examined
         friend bool not_inside(const Vertex & q, const std::vector<Obstacle> & obstacles, const double & inflate_robot);
@@ -119,6 +136,13 @@ namespace map
     // \param P0: the Vertex whose closeness is being examined.
     // \param inflate_robot: approximate robot radius used for collision checking.
     bool too_close(const Vertex & E1, const Vertex & E2, const Vertex & P0, const double & inflate_robot);
+
+    // \brief computes the shortest distance from a line to a point and returns the result in an informative struct.
+    // \param E1: the first Vertex forming an edge
+    // \param E2: the second Vertex forming an edge
+    // \param P0: the Vertex whose closeness is being examined.
+    // \returns ShortestDistance struct
+    ShortestDistance lineToPoint(const Vertex & E1, const Vertex & E2, const Vertex & P0);
 }
 
 #endif

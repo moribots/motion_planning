@@ -8,7 +8,7 @@ namespace map
 	{
 		coords = coords_;
 
-		double offset = euclidean_distance(resolution_, resolution_);
+		double offset = euclidean_distance(resolution_, resolution_) / 2.0;
 
 		center_coords = Vector2D(coords.x + offset, coords.y + offset);
 	}
@@ -18,6 +18,11 @@ namespace map
 		// Step 1. divide grid into cells based on resolution and store in class members
 		xcells = arange<double>(map_min.x, map_max.x, resolution);
 		ycells = arange<double>(map_min.y, map_max.y, resolution);
+
+		// Diagonal length of one cell
+		double offset = euclidean_distance(resolution, resolution);
+
+		std::cout << "OFFSET: " << offset << std::endl;
 
 		std::cout << "Grid decomposed!" << std::endl;
 
@@ -41,7 +46,7 @@ namespace map
 				// Perform close-to-obstacle check for labeling Inflation
 				{
 					cell.celltype = Inflation;
-					std::cout << "INFLATED: [" << cell.center_coords.x << ", " << cell.center_coords.y << "]" << std::endl;
+					// std::cout << "INFLATED: [" << cell.center_coords.x << ", " << cell.center_coords.y << "]" << std::endl;
 				}
 				cells.push_back(cell);
 			}
@@ -124,8 +129,6 @@ namespace map
 			} else if (cells.at(i).celltype == Occupied)
 			{
 				map.at(rmj) = 100;
-			} else {
-				map.at(rmj) = -1;
 			}
 		}
 	}

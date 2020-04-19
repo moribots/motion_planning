@@ -42,7 +42,7 @@ int main(int argc, char** argv)
   int n = 10;
   int k = 5;
   double thresh = 0.01;
-  double inflate = 0.05;
+  double inflate = 0.1;
   std::string map_type = "map";
 
   // store Obstacle(s) here to create Map

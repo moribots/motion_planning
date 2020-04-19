@@ -7,11 +7,11 @@ Completed:
 * The `map` package:
 	- Probabilistic Roadmap
 
-	<img src="map/media/prm.png" alt="PRM" width="200"/>
+	<img src="map/media/prm.png" alt="PRM" width="300"/>
 
 	- Tunable-resolution Grid Map
 
-	<img src="map/media/grid.png" alt="GRID" width="200"/>
+	<img src="map/media/grid.png" alt="GRID" width="300"/>
 
 In progress:
 

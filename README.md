@@ -7,12 +7,11 @@ Completed:
 * The `map` package:
 	- Probabilistic Roadmap
 
-	<!-- =250x sets with to 250px and height to automatic -->
-	![PRM](map/media/prm.png=250x)
+	<img src="map/media/prm.png" alt="PRM" width="200"/>
 
 	- Tunable-resolution Grid Map
 
-	![GRID](map/media/grid.png=250x)
+	<img src="map/media/grid.png" alt="GRID" width="200"/>
 
 In progress:
 

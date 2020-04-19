@@ -40,7 +40,7 @@ namespace map
 				// Perform inside-obstacle check for labeling Obstacle
 				if (!not_inside(Vertex(cell.center_coords), obstacles, 0.0))
 				{
-					std::cout << "OCCUPIED: [" << cell.center_coords.x << ", " << cell.center_coords.y << "]" << std::endl;
+					// std::cout << "OCCUPIED: [" << cell.center_coords.x << ", " << cell.center_coords.y << "]" << std::endl;
 					cell.celltype = Occupied;
 				} else if (!not_inside(Vertex(cell.center_coords), obstacles, inflate_robot))
 				// Perform close-to-obstacle check for labeling Inflation

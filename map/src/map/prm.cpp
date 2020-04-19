@@ -309,10 +309,38 @@ namespace map
 					// Only way this can be an obstacle now is if it's ON and edge (next condition)
 				{
 					on_all_left = false;
-				} else if (rigid2d::almost_equal(shrt.D, 0.0))
+				} else if (rigid2d::almost_equal(shrt.D, 0.0) and ((shrt.u >= 0.0 and shrt.u <= 1.0)\
+																	or (rigid2d::almost_equal(shrt.u, 0.0)\
+																		or rigid2d::almost_equal(shrt.u, 1.0))))
 					// if P is on an edge of an obstacle, it is disqualified immediately
 				{
 					return false;
+				} else if (rigid2d::almost_equal(shrt.D, 0.0))
+				// EDGE CASE: zero signed distance without being on line segment
+				{
+					// Now we check which vertex is closest to our point.
+					if (shrt.u > 1.0)
+					// CLOSEST TO Vertex 2
+					{
+						auto dist = euclidean_distance(B.x - P.coords.x, B.y - P.coords.y);
+						if (dist > inflate_robot)
+						{
+							on_all_left = false;
+						} else {
+							return false;
+						}
+
+					} else if (shrt.u < 0.0)
+					// CLOSEST TO VERTEX 1
+					{
+						auto dist = euclidean_distance(A.x - P.coords.x, A.y - P.coords.y);
+						if (dist > inflate_robot)
+						{
+							on_all_left = false;
+						} else {
+							return false;
+						}
+					}
 				}
 			}
 

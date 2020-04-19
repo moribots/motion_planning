@@ -50,7 +50,7 @@
   <!-- Grid Visualizer Node -->
   <node name="viz_grid" pkg="map" type="viz_grid" output="screen">
     <rosparam command="load" file="$(find map)/config/map.yaml"/>
-    <param name="resolution" value="0.1"/> <!-- 0.03 -->
+    <param name="resolution" value="0.03"/> <!-- 0.03 -->
     <param name="inflate" value="0.1"/>
     <param name="scale" value="10.0"/>
   </node>

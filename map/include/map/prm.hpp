@@ -77,10 +77,6 @@ namespace map
         // \param thresh: Euclidean Distance Threshold for valid Edge.
         bool edge_valid(const Vertex & q, const Vertex & q_prime, const double & thresh);
 
-        // \brief Checks whether a potential Vertex lies on an Obstacle. 'map::PRM::sample_configurations' calls this function.
-        // \param q: the Vertex being examined
-        bool no_collision(const Vertex & q);
-
         // \brief Checks whether a potential Edge intersects a Polygon.
         // 'map::PRM::no_collision(const Vertex & q, const Vertex & q_prime, const double & inflate_robot)' calls this function.
         // \param q: the main Vertex being examined
@@ -94,12 +90,16 @@ namespace map
         // \param inflate_robot: approximate robot radius used for collision checking.
         bool no_collision(const Vertex & q, const Vertex & q_prime, const double & inflate_robot);
 
+        // \brief Checks whether a potential Vertex lies on an Obstacle. 'map::PRM::sample_configurations' calls this function.
+        // \param q: the Vertex being examined
+        friend bool not_inside(const Vertex & q, const std::vector<Obstacle> & obstacles, const double & inflate_robot);
+
         // \brief Checks if a Vertex is too close to an Edge.
         // \param E1: the first Vertex forming an edge
         // \param E2: the second Vertex forming an edge
         // \param P0: the Vertex whose closeness is being examined.
         // \param inflate_robot: approximate robot radius used for collision checking.
-        bool too_close(const Vertex & E1, const Vertex & E2, const Vertex & P0, const double & inflate_robot);
+        friend bool too_close(const Vertex & E1, const Vertex & E2, const Vertex & P0, const double & inflate_robot);
 
         // \brief Return Probabilistic Road Map
         // \returns Probabilistic Road Map 
@@ -108,6 +108,17 @@ namespace map
         // Hash Table
         std::vector<Vertex> configurations;
     };
+
+    // \brief Checks whether a potential Vertex lies on an Obstacle. 'map::PRM::sample_configurations' calls this function.
+    // \param q: the Vertex being examined
+    bool not_inside(const Vertex & q, const std::vector<Obstacle> & obstacles, const double & inflate_robot);
+
+    // \brief Checks if a Vertex is too close to an Edge.
+    // \param E1: the first Vertex forming an edge
+    // \param E2: the second Vertex forming an edge
+    // \param P0: the Vertex whose closeness is being examined.
+    // \param inflate_robot: approximate robot radius used for collision checking.
+    bool too_close(const Vertex & E1, const Vertex & E2, const Vertex & P0, const double & inflate_robot);
 }
 
 #endif

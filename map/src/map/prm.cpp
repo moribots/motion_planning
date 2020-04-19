@@ -91,7 +91,7 @@ namespace map
 			q.id = static_cast<int>(configurations.size());
 
 			// Ensure to free-space collison
-			if (no_collision(q))
+			if (not_inside(q, obstacles, inflate_robot))
 			{
 				// KEY, OBJECT
 				configurations.push_back(q);
@@ -149,88 +149,6 @@ namespace map
 		{
 			return true;
 		}
-	}
-
-	bool PRM::no_collision(const Vertex & q)
-	{
-		bool free = true;
-		// Loop over all obstacles
-		for (auto obs_iter = obstacles.begin(); obs_iter != obstacles.end(); obs_iter++)
-		{
-			// Loop over all vertices and treat them as directional vectors.
-			// if q is ON ANY edge, then it is on an obstacle
-			// If q is on the left side of ALL edges, then it is inside an obstacle
-			bool on_all_left = true;
-
-			for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
-			{
-				// Vector from current and next vertex. so if 4 vertices: 0->1, 1->2, 2->3, 3->0
-				// Record current index
-				int i = static_cast<int>(std::distance(obs_iter->vertices.begin(), v_iter));
-				// If current index is the last one, loop back to zero for vector construction
-				// -1 because indeces start at 0
-				if (i == static_cast<int>(obs_iter->vertices.size()) - 1)
-				{
-					i = 0;
-				} else
-				// Otherwise, just use the next index
-				{
-					i += 1;
-				}
-
-				// Referencing: https://drive.google.com/file/d/1gQuR4J80aXZ9BBL1s3K83TmxQSWD3AWt/view?usp=sharing Slide 32
-				// v_iter is A
-				// obs_iter->vertices.at(i) is B
-				// DIRECTION is A->B
-				// q is P
-				auto A = *v_iter;
-				auto B = obs_iter->vertices.at(i);
-				auto P = q;
-
-				// u is perpendicular to AB. flip xs and ys and negate one component
-				// NOTE: if we have {x,y} --> {y, -x} = RHS perp. (outward normal) | {-y, x} = LHS perp. (inward normal)
-				// inward normal
-				Eigen::Vector2d u(-(B.y - A.y), B.x - A.x);
-				// dot product with AB = 0 to ensure orthogonal
-				Eigen::Vector2d AB(B.x - A.x, B.y - A.y);
-				double ABu_test = AB.dot(u);
-				// std::cout << "AB u TEST: " << ABu_test << std::endl;
-				if (!rigid2d::almost_equal(ABu_test, 0.0))
-				{
-					throw std::runtime_error("u is NOT orthogonal to AB!\
-											 \n  where(): PRM::no_collision(const Vertex &q)");
-				}
-
-				// n is the normal vector of u
-				auto n = u.normalized(); // .normalize() for in place
-				// D is vector A->P
-				Eigen::Vector2d D(P.coords.x - A.x, P.coords.y - A.y);
-				// Finally, d = D*n (dot product) gives us the minimum distance from AB to P
-
-				// if d > 0, P is on the left of AB, if d = 0, P is ON AB, if d < 0, P is on the right of AB
-				double d = D.dot(n);
-
-				if (d < - inflate_robot)
-					// P is on the right side of at least one edge PLUS buffer, not necessarily on obstacle
-					// Only way this can be an obstacle now is if it's ON and edge (next condition)
-				{
-					on_all_left = false;
-				} else if (rigid2d::almost_equal(d, 0.0))
-					// if P is on an edge of an obstacle, it is disqualified immediately
-				{
-					return false;
-				}
-			}
-
-			// is q is on the inside of all the edges of an obstacle, it is not free (disqualified)
-			if (on_all_left)
-			{
-				free = false;
-			}
-
-		}
-
-		return free;
 	}
 
 	bool PRM::no_collision(const Vertex & q, const Vertex & q_prime, const std::vector<Obstacle>::iterator & obs_iter)
@@ -349,7 +267,89 @@ namespace map
 		return free;
 	}
 
-	bool PRM::too_close(const Vertex & E1, const Vertex & E2, const Vertex & P0, const double & inflate_robot)
+	bool not_inside(const Vertex & q, const std::vector<Obstacle> & obstacles, const double & inflate_robot)
+	{
+		bool free = true;
+		// Loop over all obstacles
+		for (auto obs_iter = obstacles.begin(); obs_iter != obstacles.end(); obs_iter++)
+		{
+			// Loop over all vertices and treat them as directional vectors.
+			// if q is ON ANY edge, then it is on an obstacle
+			// If q is on the left side of ALL edges, then it is inside an obstacle
+			bool on_all_left = true;
+
+			for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
+			{
+				// Vector from current and next vertex. so if 4 vertices: 0->1, 1->2, 2->3, 3->0
+				// Record current index
+				int i = static_cast<int>(std::distance(obs_iter->vertices.begin(), v_iter));
+				// If current index is the last one, loop back to zero for vector construction
+				// -1 because indeces start at 0
+				if (i == static_cast<int>(obs_iter->vertices.size()) - 1)
+				{
+					i = 0;
+				} else
+				// Otherwise, just use the next index
+				{
+					i += 1;
+				}
+
+				// Referencing: https://drive.google.com/file/d/1gQuR4J80aXZ9BBL1s3K83TmxQSWD3AWt/view?usp=sharing Slide 32
+				// v_iter is A
+				// obs_iter->vertices.at(i) is B
+				// DIRECTION is A->B
+				// q is P
+				auto A = *v_iter;
+				auto B = obs_iter->vertices.at(i);
+				auto P = q;
+
+				// u is perpendicular to AB. flip xs and ys and negate one component
+				// NOTE: if we have {x,y} --> {y, -x} = RHS perp. (outward normal) | {-y, x} = LHS perp. (inward normal)
+				// inward normal
+				Eigen::Vector2d u(-(B.y - A.y), B.x - A.x);
+				// dot product with AB = 0 to ensure orthogonal
+				Eigen::Vector2d AB(B.x - A.x, B.y - A.y);
+				double ABu_test = AB.dot(u);
+				// std::cout << "AB u TEST: " << ABu_test << std::endl;
+				if (!rigid2d::almost_equal(ABu_test, 0.0))
+				{
+					throw std::runtime_error("u is NOT orthogonal to AB!\
+											 \n  where(): PRM::no_collision(const Vertex &q)");
+				}
+
+				// n is the normal vector of u
+				auto n = u.normalized(); // .normalize() for in place
+				// D is vector A->P
+				Eigen::Vector2d D(P.coords.x - A.x, P.coords.y - A.y);
+				// Finally, d = D*n (dot product) gives us the minimum distance from AB to P
+
+				// if d > 0, P is on the left of AB, if d = 0, P is ON AB, if d < 0, P is on the right of AB
+				double d = D.dot(n);
+
+				if (d < - inflate_robot)
+					// P is on the right side of at least one edge PLUS buffer, not necessarily on obstacle
+					// Only way this can be an obstacle now is if it's ON and edge (next condition)
+				{
+					on_all_left = false;
+				} else if (rigid2d::almost_equal(d, 0.0))
+					// if P is on an edge of an obstacle, it is disqualified immediately
+				{
+					return false;
+				}
+			}
+
+			// is q is on the inside of all the edges of an obstacle, it is not free (disqualified)
+			if (on_all_left)
+			{
+				free = false;
+			}
+
+		}
+
+		return free;
+	}
+
+	bool too_close(const Vertex & E1, const Vertex & E2, const Vertex & P0, const double & inflate_robot)
 	{
 		// Referencing: https://docs.google.com/presentation/d/1gQuR4J80aXZ9BBL1s3K83TmxQSWD3AWt/edit#slide=id.g731274b3d5_0_94 Slide 33
 		Eigen::Vector2d P1(E1.coords.x, E1.coords.y);

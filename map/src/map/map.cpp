@@ -75,6 +75,15 @@ namespace map
 		}
 	}
 
+	std::vector<Vector2D> Map::return_map_bounds()
+	{
+		std::vector<Vector2D> v;
+		v.push_back(map_min);
+		v.push_back(map_max);
+
+		return v;
+	}
+
 
 	// Helper Functions
 	double euclidean_distance(const double & x_rel, const double & y_rel)

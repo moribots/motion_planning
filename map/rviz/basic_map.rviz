@@ -12,6 +12,7 @@ Panels:
         - /PRML1
         - /ObstaclesS1
         - /PRMS1
+        - /Map1
       Splitter Ratio: 0.5
     Tree Height: 714
   - Class: rviz/Selection
@@ -241,7 +242,7 @@ Visualization Manager:
       Marker Topic: /line_prm
       Name: PRML
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -257,8 +258,18 @@ Visualization Manager:
       Marker Topic: /sph_prm
       Name: PRMS
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
+      Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic: /grid_map
+      Unreliable: false
+      Use Timestamp: false
       Value: true
   Enabled: true
   Global Options:
@@ -324,5 +335,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1128
-  X: 181
+  X: 180
   Y: 0

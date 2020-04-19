@@ -47,6 +47,10 @@ namespace map
         /// \brief assigns the map space to map_extent in absolute(x,y).
         void find_map_extent();
 
+        // \brief return map bounds
+        // \returns std::vector<Vector2D> containing minimum and maximum bounds respectively
+        std::vector<Vector2D> return_map_bounds();
+
 
     // protected instead of private so that child Class can access
     protected:

@@ -60,6 +60,7 @@ int main(int argc, char** argv)
   nh_.getParam("thresh", thresh);
   nh_.getParam("inflate", inflate);
   nh_.getParam("map_type", map_type);
+  nh_.getParam("scale", SCALE);
 
   // 'obstacles' is a triple-nested list.
   // 1st level: obstacle (Obstacle), 2nd level: vertices (std::vector), 3rd level: coordinates (Vector2D)

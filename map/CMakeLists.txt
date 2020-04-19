@@ -134,6 +134,7 @@ include_directories(
 add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/${PROJECT_NAME}.cpp
   src/${PROJECT_NAME}/prm.cpp
+  src/${PROJECT_NAME}/grid.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -146,6 +147,7 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/map_node.cpp)
 add_executable(viz_map src/viz_map.cpp)
+add_executable(viz_grid src/viz_grid.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -153,15 +155,26 @@ add_executable(viz_map src/viz_map.cpp)
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
 # set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
 set_target_properties(viz_map PROPERTIES OUTPUT_NAME viz_map PREFIX "")
+set_target_properties(viz_grid PROPERTIES OUTPUT_NAME viz_grid PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(viz_map ${${PROJECT_NAME}_EXPORTED_TARGETS} ${Eigen3_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(viz_grid ${${PROJECT_NAME}_EXPORTED_TARGETS} ${Eigen3_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(
 viz_map # this is my node that will use below libraries
+${rigid2d_LIBRARIES}
+${nuslam_LIBRARIES}
+Eigen3::Eigen
+${PROJECT_NAME}
+${catkin_LIBRARIES}
+)
+
+target_link_libraries(
+viz_grid # this is my node that will use below libraries
 ${rigid2d_LIBRARIES}
 ${nuslam_LIBRARIES}
 Eigen3::Eigen
@@ -185,7 +198,7 @@ ${catkin_LIBRARIES}
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
-install(TARGETS viz_map
+install(TARGETS viz_map viz_grid
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

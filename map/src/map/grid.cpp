@@ -20,14 +20,14 @@ namespace map
 		ycells = arange<double>(map_min.y, map_max.y, resolution);
 
 		// Diagonal length of one cell
-		double offset = euclidean_distance(resolution, resolution);
+		// double offset = euclidean_distance(resolution, resolution);
 
-		std::cout << "OFFSET: " << offset << std::endl;
+		// std::cout << "OFFSET: " << offset << std::endl;
 
-		std::cout << "Grid decomposed!" << std::endl;
+		// std::cout << "Grid decomposed!" << std::endl;
 
-		std::cout << "# x cells: " << xcells.size() << std::endl;
-		std::cout << "# y cells: " << ycells.size() << std::endl;
+		// std::cout << "# x cells: " << xcells.size() << std::endl;
+		// std::cout << "# y cells: " << ycells.size() << std::endl;
 
 		// Step 2. Populate Cell vector (cells) with world coordinates and labels in row-major-order
 		for (int i = 0; i < static_cast<int>(xcells.size()); i++)

@@ -304,15 +304,49 @@ namespace map
 				// and determine signed distance
 				auto shrt = lineToPoint(Vertex(A), Vertex(B), Vertex(P.coords));
 
-				if (shrt.D < - inflate_robot)
-					// P is on the right side of at least one edge PLUS buffer, not necessarily on obstacle
-					// Only way this can be an obstacle now is if it's ON and edge (next condition)
+				if (shrt.D < 0.0)
+					// P is on the right side of at least one edge, not necessarily on obstacle
+					// Only way this can be an obstacle now is if it's ON and edge
 				{
-					on_all_left = false;
+					// if P is within the segment window, check whether it is in the inflation bound
+					if ((shrt.u >= 0.0 and shrt.u <= 1.0) or rigid2d::almost_equal(shrt.u, 0.0)\
+														  or rigid2d::almost_equal(shrt.u, 1.0))
+					{
+						if (shrt.D < - inflate_robot)
+						{
+							on_all_left = false;
+						}
+					} else
+					// P is not within the segment window, so check if distance to closest segment vertex is above
+					// inflation bound
+					{
+						if (shrt.u > 1.0)
+						// CLOSEST TO Vertex 2
+						{
+							auto dist = euclidean_distance(B.x - P.coords.x, B.y - P.coords.y);
+							if (dist > inflate_robot)
+							{
+								on_all_left = false;
+							} else {
+								return false;
+							}
+
+						} else if (shrt.u < 0.0)
+						// CLOSEST TO VERTEX 1
+						{
+							auto dist = euclidean_distance(A.x - P.coords.x, A.y - P.coords.y);
+							if (dist > inflate_robot)
+							{
+								on_all_left = false;
+							} else {
+								return false;
+							}
+						}
+					}
 				} else if (rigid2d::almost_equal(shrt.D, 0.0) and ((shrt.u >= 0.0 and shrt.u <= 1.0)\
 																	or (rigid2d::almost_equal(shrt.u, 0.0)\
 																		or rigid2d::almost_equal(shrt.u, 1.0))))
-					// if P is on an edge of an obstacle, it is disqualified immediately
+					// if P is on an edge of an obstacle and within segment bounds, it is disqualified immediately
 				{
 					return false;
 				} else if (rigid2d::almost_equal(shrt.D, 0.0))
@@ -341,6 +375,10 @@ namespace map
 							return false;
 						}
 					}
+				} else
+				// this means shrt.D > 0.0
+				{
+
 				}
 			}
 

@@ -16,7 +16,9 @@ Completed:
 In progress:
 
 * Global planners:
-	- A* on PRM, Incremental Phi* on Grid, Potential Fields on Grid
+	- A* on PRM
+	- Incremental Phi* on Grid
+	- Potential Field on Grid
 * Local planner:
 	- Dynamic Window Approach
 * Trajectory Optimization:

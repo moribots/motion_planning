@@ -200,6 +200,8 @@ int main(int argc, char** argv)
       marker.points.push_back(new_vertex);
       map_arr.markers.push_back(marker);
     }
+
+    ROS_INFO("Obstacle Map Built!");
   } else if (map_type == "prm")
   {
     // Build PRM
@@ -245,6 +247,7 @@ int main(int argc, char** argv)
         map_arr.markers.push_back(marker);
       }
     }
+    ROS_INFO("PRM Built!");
   }
 
   ros::Rate rate(frequency);

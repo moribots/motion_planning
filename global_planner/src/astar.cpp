@@ -224,6 +224,8 @@ int main(int argc, char** argv)
         }
     }
 
+    ROS_INFO("PRM Built!");
+
     // PLAN on PRM using A*
     global::Astar astar(obstacles_v);
 

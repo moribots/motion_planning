@@ -8,13 +8,9 @@ Panels:
         - /Grid1
         - /TF1/Frames1
         - /TF1/Tree1
-        - /ObstaclesL1
-        - /PRML1
-        - /ObstaclesS1
-        - /PRMS1
-        - /PATHL1
-        - /PATHS1
-        - /PATHS1/Status1
+        - /Obstacles1
+        - /PRM1
+        - /PATH1
       Splitter Ratio: 0.5
     Tree Height: 714
   - Class: rviz/Selection
@@ -142,48 +138,24 @@ Visualization Manager:
       Visual Enabled: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /line_map
-      Name: ObstaclesL
+      Marker Topic: /map
+      Name: Obstacles
       Namespaces:
         "": true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /line_prm
-      Name: PRML
+      Marker Topic: /prm
+      Name: PRM
       Namespaces:
         "": true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /sph_map
-      Name: ObstaclesS
-      Namespaces:
-        "": true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /sph_prm
-      Name: PRMS
-      Namespaces:
-        "": true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /line_path
-      Name: PATHL
-      Namespaces:
-        "": true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /sph_path
-      Name: PATHS
+      Marker Topic: /path
+      Name: PATH
       Namespaces:
         "": true
       Queue Size: 100
@@ -216,7 +188,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.472794532775879
+      Distance: 6.283954620361328
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -252,5 +224,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1128
-  X: 178
+  X: 175
   Y: 0

@@ -107,12 +107,10 @@ int main(int argc, char** argv)
 
   // Initialize Marker
   // Init Marker Array Publisher
-  ros::Publisher line_pub = nh.advertise<visualization_msgs::MarkerArray>("line_map", 1);
-  ros::Publisher sph_pub = nh.advertise<visualization_msgs::MarkerArray>("sph_map", 1);
+  ros::Publisher map_pub = nh.advertise<visualization_msgs::MarkerArray>("map", 1);
 
   // Init Marker Array
-  visualization_msgs::MarkerArray line_arr;
-  visualization_msgs::MarkerArray sph_arr;
+  visualization_msgs::MarkerArray map_arr;
 
   // Init Marker
   visualization_msgs::Marker marker;
@@ -164,7 +162,7 @@ int main(int argc, char** argv)
   marker.pose.position.x = 0.0;
   marker.pose.position.y = 0.0;
 
-  int sph_mkr_id = 0;
+  int marker_id = 0;
 
   if (map_type == "map")
   {
@@ -172,10 +170,12 @@ int main(int argc, char** argv)
     map::Map map(obstacles_v);
     // Now, loop through obstacles in map to create line strips.
     // Each obstacle = 1 line strip
+    int marker_id = 0;
     for (auto obs_iter = obstacles_v.begin(); obs_iter != obstacles_v.end(); obs_iter++)
     {
       marker.points.clear();
-      marker.id = std::distance(obstacles_v.begin(), obs_iter);
+      marker.id = marker_id;
+      marker_id++;
       ROS_DEBUG("obstacle [%d] starts at (%.2f, %.2f)", marker.id + 1, obs_iter->vertices.at(0).x / SCALE, obs_iter->vertices.at(0).y / SCALE);
       for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
       {
@@ -188,9 +188,9 @@ int main(int argc, char** argv)
         // Also push back cylinders
         sph_mkr.pose.position.x = v_iter->x;
         sph_mkr.pose.position.y = v_iter->y;
-        sph_mkr.id = sph_mkr_id;
-        sph_mkr_id++;
-        sph_arr.markers.push_back(sph_mkr);
+        sph_mkr.id = marker_id;
+        marker_id++;
+        map_arr.markers.push_back(sph_mkr);
       }
       // Before pushing back, connect last vertex to first vertex
       geometry_msgs::Point new_vertex;
@@ -198,7 +198,7 @@ int main(int argc, char** argv)
       new_vertex.y = obs_iter->vertices.at(0).y;
       new_vertex.z = 0.0;
       marker.points.push_back(new_vertex);
-      line_arr.markers.push_back(marker);
+      map_arr.markers.push_back(marker);
     }
   } else if (map_type == "prm")
   {
@@ -210,7 +210,8 @@ int main(int argc, char** argv)
     for (auto node_iter = configurations.begin(); node_iter != configurations.end(); node_iter++)
     {
       marker.points.clear();
-      marker.id = std::distance(configurations.begin(), node_iter);
+      marker.id = marker_id;
+      marker_id++;
 
       // Check if a node has edges before plotting
       if (node_iter->id_set.size() > 0)
@@ -236,12 +237,12 @@ int main(int argc, char** argv)
           // Also push back cylinders
           sph_mkr.pose.position.x = node_iter->coords.x;
           sph_mkr.pose.position.y = node_iter->coords.y;
-          sph_mkr.id = sph_mkr_id;
-          sph_mkr_id++;
-          sph_arr.markers.push_back(sph_mkr);
+          sph_mkr.id = marker_id;
+          marker_id++;
+          map_arr.markers.push_back(sph_mkr);
         }
         // Push to Marker Array
-        line_arr.markers.push_back(marker);
+        map_arr.markers.push_back(marker);
       }
     }
   }
@@ -254,8 +255,7 @@ int main(int argc, char** argv)
   	ros::spinOnce();
 
     // Publish Map
-    line_pub.publish(line_arr);
-    sph_pub.publish(sph_arr);
+    map_pub.publish(map_arr);
 
     rate.sleep();
   }

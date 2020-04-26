@@ -114,18 +114,13 @@ int main(int argc, char** argv)
 
     // Initialize Marker
     // Init Marker Array Publisher
-    ros::Publisher line_pub = nh.advertise<visualization_msgs::MarkerArray>("line_map", 1);
-    ros::Publisher sph_pub = nh.advertise<visualization_msgs::MarkerArray>("sph_map", 1);
+    ros::Publisher map_pub = nh.advertise<visualization_msgs::MarkerArray>("prm", 1);
 
-    ros::Publisher line_path_pub = nh.advertise<visualization_msgs::MarkerArray>("line_path", 1);
-    ros::Publisher sph_path_pub = nh.advertise<visualization_msgs::MarkerArray>("sph_path", 1);
+    ros::Publisher path_pub = nh.advertise<visualization_msgs::MarkerArray>("path", 1);
 
     // Init Marker Array
-    visualization_msgs::MarkerArray line_arr;
-    visualization_msgs::MarkerArray sph_arr;
-
-    visualization_msgs::MarkerArray line_path;
-    visualization_msgs::MarkerArray sph_path;
+    visualization_msgs::MarkerArray map_arr;
+    visualization_msgs::MarkerArray path_arr;
 
     // Init Marker
     visualization_msgs::Marker marker;
@@ -158,7 +153,6 @@ int main(int argc, char** argv)
     sph_mkr.color.r = 0.5f;
     sph_mkr.color.g = 0.0f;
     sph_mkr.color.b = 0.5f;
-    int sph_mkr_id = 0;
 
     // LINE_STRIP relative to this pose
     marker.pose.position.x = 0.0;
@@ -169,32 +163,33 @@ int main(int argc, char** argv)
     visualization_msgs::Marker path_marker;
     path_marker = marker;
     // More visible than PRM
-    path_marker.scale.x = 0.05;
-    path_marker.color.r = 0.0;
+    path_marker.scale.x = 0.03;
+    path_marker.color.r = 0.2;
     path_marker.color.g = 1.0;
-    path_marker.color.b = 0.0;
+    path_marker.color.b = 0.2;
 
     visualization_msgs::Marker path_sph_mkr;
     path_sph_mkr = sph_mkr;
     // More visible than PRM
-    path_sph_mkr.scale.x = 0.05;
-    path_sph_mkr.scale.y = 0.05;
-    path_sph_mkr.scale.z = 0.05;
+    path_sph_mkr.type = visualization_msgs::Marker::CUBE;
+    path_sph_mkr.scale.x = 0.02;
+    path_sph_mkr.scale.y = 0.02;
+    path_sph_mkr.scale.z = 0.02;
     path_sph_mkr.color.r = 0.0f;
     path_sph_mkr.color.g = 0.0f;
     path_sph_mkr.color.b = 0.0f;
-
-    int path_sph_mkr_id = 0;
 
     // Build PRM
     map::PRM prm(obstacles_v, inflate);
     prm.build_map(n, k, thresh);
     // DRAW PRM
+    int prm_marker_id = 0;
     auto configurations = prm.return_prm();
     for (auto node_iter = configurations.begin(); node_iter != configurations.end(); node_iter++)
     {
         marker.points.clear();
-        marker.id = std::distance(configurations.begin(), node_iter);
+        marker.id = prm_marker_id;
+        prm_marker_id++;
 
         // Check if a node has edges before plotting
         if (node_iter->id_set.size() > 0)
@@ -220,12 +215,12 @@ int main(int argc, char** argv)
                   // Also push back cylinders
                   sph_mkr.pose.position.x = node_iter->coords.x;
                   sph_mkr.pose.position.y = node_iter->coords.y;
-                  sph_mkr.id = sph_mkr_id;
-                  sph_mkr_id++;
-                  sph_arr.markers.push_back(sph_mkr);
+                  sph_mkr.id = prm_marker_id;
+                  prm_marker_id++;
+                  map_arr.markers.push_back(sph_mkr);
                 }
             // Push to Marker Array
-            line_arr.markers.push_back(marker);
+            map_arr.markers.push_back(marker);
         }
     }
 
@@ -234,9 +229,10 @@ int main(int argc, char** argv)
 
     auto path = astar.plan(start, goal, configurations);
 
+    // DRAW PATH
+    int path_marker_id = 0;
     for (auto path_iter = path.begin(); path_iter != path.end(); path_iter++)
     {
-
         // Add node as marker vertex
         geometry_msgs::Point vtx;
         vtx.x = path_iter->vertex.coords.x;
@@ -247,13 +243,13 @@ int main(int argc, char** argv)
         // Also push back cylinders
         path_sph_mkr.pose.position.x = path_iter->vertex.coords.x;
         path_sph_mkr.pose.position.y = path_iter->vertex.coords.y;
-        path_sph_mkr.id = path_sph_mkr_id;
-        path_sph_mkr_id++;
-        sph_path.markers.push_back(sph_mkr);
+        path_sph_mkr.id = path_marker_id;
+        path_marker_id++;
+        path_arr.markers.push_back(path_sph_mkr);
 
     }
-
-    line_path.markers.push_back(path_marker);
+    path_marker.id = path_marker_id;
+    path_arr.markers.push_back(path_marker);
 
     ros::Rate rate(frequency);
 
@@ -263,13 +259,10 @@ int main(int argc, char** argv)
         ros::spinOnce();
 
         // Publish Map
-        line_pub.publish(line_arr);
-        sph_pub.publish(sph_arr);
+        map_pub.publish(map_arr);
 
         // Publish Path
-        line_path_pub.publish(line_path);
-        sph_path_pub.publish(sph_path);
-
+        path_pub.publish(path_arr);
         rate.sleep();
     }
 

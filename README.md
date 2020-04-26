@@ -20,6 +20,7 @@ In progress:
 
 	<img src="global_planner/media/astar.png" alt="ASTAR" width="300"/>
 
+	- Theta* on PRM
 	- Incremental Phi* on Grid
 	- Potential Field on Grid
 * Local planner:

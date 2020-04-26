@@ -43,8 +43,7 @@
     <param name="k" value="20"/>
     <param name="thresh" value="0.1"/>
     <param name="inflate" value="0.1"/>
-    <remap from="line_map" to="line_prm"/>
-    <remap from="sph_map" to="sph_prm"/>
+    <remap from="map" to="prm"/>
   </node>
 
   <!-- Grid Visualizer Node -->

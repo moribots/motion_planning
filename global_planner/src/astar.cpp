@@ -38,6 +38,8 @@ int main(int argc, char** argv)
     double SCALE = 10.0;
     std::string frame_id = "base_footprint";
     XmlRpc::XmlRpcValue xml_obstacles;
+    std::vector<double> start_vec{7.0, 3.0};
+    std::vector<double> goal_vec{7.0, 26.0};
 
     // PRM Parameters
     int n = 10;
@@ -54,6 +56,8 @@ int main(int argc, char** argv)
     // Parameters
     nh_.getParam("frequency", frequency);
     nh_.getParam("obstacles", xml_obstacles);
+    nh_.getParam("start", start_vec);
+    nh_.getParam("goal", goal_vec);
     nh_.getParam("map_frame_id", frame_id);
     nh_.getParam("n", n);
     nh_.getParam("k", k);
@@ -61,8 +65,8 @@ int main(int argc, char** argv)
     nh_.getParam("inflate", inflate);
     nh_.getParam("scale", SCALE);
 
-    rigid2d::Vector2D start(7.0/SCALE, 3.0/SCALE);
-    rigid2d::Vector2D goal(7.0/SCALE, 26.0/SCALE);
+    rigid2d::Vector2D start(start_vec.at(0)/SCALE, start_vec.at(1)/SCALE);
+    rigid2d::Vector2D goal(goal_vec.at(0)/SCALE, goal_vec.at(1)/SCALE);
 
     // 'obstacles' is a triple-nested list.
     // 1st level: obstacle (Obstacle), 2nd level: vertices (std::vector), 3rd level: coordinates (Vector2D)
@@ -243,7 +247,7 @@ int main(int argc, char** argv)
         // Also push back cylinders
         path_sph_mkr.pose.position.x = path_iter->vertex.coords.x;
         path_sph_mkr.pose.position.y = path_iter->vertex.coords.y;
-        path_sph_mkr.id = sph_mkr_id;
+        path_sph_mkr.id = path_sph_mkr_id;
         path_sph_mkr_id++;
         sph_path.markers.push_back(sph_mkr);
 

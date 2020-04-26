@@ -38,8 +38,9 @@
   <!-- PRM with A* Node -->
   <node name="astar" pkg="global_planner" type="astar" output="screen">
     <rosparam command="load" file="$(find map)/config/map.yaml"/>
+    <rosparam command="load" file="$(find global_planner)/config/path.yaml"/>
     <param name="n" value="200"/>
-    <param name="k" value="5"/>
+    <param name="k" value="20"/>
     <param name="thresh" value="0.1"/>
     <param name="inflate" value="0.1"/>
     <remap from="line_map" to="line_prm"/>

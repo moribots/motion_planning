@@ -25,7 +25,7 @@
   <!-- load diff_drive_bot parameters to parameter server -->
   <rosparam command="load" file="$(find nuturtle_description)/config/diff_params.yaml" />
 
-  <arg name="rviz_view" default="$(find map)/rviz/basic_map.rviz"/>
+  <arg name="rviz_view" default="$(find global_planner)/rviz/astar.rviz"/>
 
   <node name="rviz" pkg="rviz" type="rviz" required="True" args="-d $(arg rviz_view)"/>
 
@@ -38,8 +38,8 @@
   <!-- PRM with A* Node -->
   <node name="astar" pkg="global_planner" type="astar" output="screen">
     <rosparam command="load" file="$(find map)/config/map.yaml"/>
-    <param name="n" value="500"/>
-    <param name="k" value="20"/>
+    <param name="n" value="200"/>
+    <param name="k" value="5"/>
     <param name="thresh" value="0.1"/>
     <param name="inflate" value="0.1"/>
     <remap from="line_map" to="line_prm"/>

@@ -69,7 +69,9 @@ namespace global
 	    // Store the start node
 	    Node start_node = current_node;
 
-	    std::set<int> closed_list;
+
+	    // Closed List
+	    std::set<Node, std::less<>> closed_list;
 
 	    int iterations = 0;
 	    while (!open_list.empty())
@@ -83,14 +85,13 @@ namespace global
 	    	open_list_v.erase(current_node.vertex.id);
 
 	    	// Add current node ID to closed list
-	    	closed_list.insert(current_node.vertex.id);
+	    	closed_list.insert(current_node);
 
 	    	// END condition
 	    	if (current_node.vertex.id == goal_node.vertex.id)
 	    	{
 	    		std::cout << "Goal found after " << iterations << " Iterations!" << std::endl;
-	    		// return trace_path(start_node, closed_list);
-	    		return std::vector<Node>{start_node};
+	    		return trace_path(current_node, closed_list);
 	    	}
 
 	    	// Loop through each node's neighbors
@@ -170,6 +171,34 @@ namespace global
 	    std::cout << "No valid path! returning start node" << std::endl;
 	    return std::vector<Node>{start_node};
 
+	}
+
+	std::vector<Node> Astar::trace_path(Node & final_node, std::set<Node, std::less<>> & closed_list)
+	{
+		// First node in the vector is 'final node'
+		std::vector<Node> path{final_node};
+
+		Node next_node = *closed_list.find(path.back().parent_id);
+
+		path.push_back(next_node);
+
+		bool done = false;
+
+		while (!done)
+		{
+			next_node = *closed_list.find(path.back().parent_id);
+			path.push_back(next_node);
+			if (next_node.parent_id == -1)
+			{
+				done = true;
+				break;
+			}
+		}
+
+		std::reverse(path.begin(), path.end());
+
+		std::cout << "The path contains " << path.size() << " Nodes." << std::endl;
+		return path;
 	}
 
 	Vertex find_nearest_node(Vector2D & position, std::vector<Vertex> & map)

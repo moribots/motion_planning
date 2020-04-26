@@ -33,6 +33,11 @@ namespace global
         double gcost, hcost, fcost = 0.0;
     };
 
+    // Bolean operator so that std::find can be used with struct sub-element in closed list
+    bool operator<(const Node & n, const int & id) { return n.vertex.id < id; }
+    bool operator<(const int & id, const Node & n) { return id < n.vertex.id; }
+    bool operator<(const Node & n1, const Node & n2) { return n1.vertex.id < n2.vertex.id; }
+
     // \brief functor (function object) which compares the costs of two Nodes for heap sorting 
     class HeapComparator
     { 
@@ -64,9 +69,8 @@ namespace global
         std::vector<Node> plan(Vector2D & start, Vector2D & goal, std::vector<Vertex> & map);
 
         // \brief returns the path planned on the PRM
-        // \param start_node: the start node used for the end condition
-        // \param closed_list: Node IDs 
-        // std::vector<Node> trace_path(start_node, closed_list);
+        // \param closed_list: Nodes to traverse
+        std::vector<Node> trace_path(Node & final_node, std::set<Node, std::less<>> & closed_list);
 
         // \brief Plans a path on a Grid.
         // \param start: the starting coordinates

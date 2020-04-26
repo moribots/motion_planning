@@ -35,7 +35,8 @@ namespace map
         CellType celltype = Free;
         // Cell value
         double value = 0.0;
-
+        // Cell index in grid (also RMJ)
+        Index index;
     };
 
     /// \brief stores Obstacle(s) to construct basic Grid. Inherits from Map in map.hpp.

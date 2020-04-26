@@ -13,6 +13,10 @@ namespace global
 {
     // Used to store Obstacle vertex coordinates
     using rigid2d::Vector2D;
+    using map::Vertex;
+    using map::Cell;
+    using map::Index;
+    using map::Obstacle;
 
     /// \brief stores Obstacle(s) to construct basic Planner
     class GlobalPlanner
@@ -24,7 +28,18 @@ namespace global
 
     // protected instead of private so that child Class can access
     protected:
-        double inflate_robot;
+        std::vector<Vertex> PRM;
+
+        std::vector<Cell> GRID;
+
+         // Map obstacles
+        std::vector<Obstacle> obstacles;
+
+        // Map maximum coordinatesin x,y
+        Vector2D map_max;
+
+        // Map minimum coordinatesin x,y
+        Vector2D map_min;
     };
 }
 

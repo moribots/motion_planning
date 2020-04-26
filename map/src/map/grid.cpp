@@ -118,6 +118,9 @@ namespace map
 			auto index = rowmajor2grid(i, static_cast<int>(ycells.size()));
 			// Convert back to rmj
 			int rmj = grid2rowmajor(index.x, index.y, static_cast<int>(xcells.size()));
+			index.row_major = rmj;
+
+			cells.at(i).index = index;
 
 			// For each cell type, assign a value to map
 			if (cells.at(i).celltype == Free)

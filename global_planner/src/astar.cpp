@@ -37,6 +37,7 @@ int main(int argc, char** argv)
     // Scale by which to transform marker poses (10 cm/cell so we use 10)
     double SCALE = 10.0;
     std::string frame_id = "base_footprint";
+    std::string planner_type = "astar";
     XmlRpc::XmlRpcValue xml_obstacles;
     std::vector<double> start_vec{7.0, 3.0};
     std::vector<double> goal_vec{7.0, 26.0};
@@ -64,6 +65,7 @@ int main(int argc, char** argv)
     nh_.getParam("thresh", thresh);
     nh_.getParam("inflate", inflate);
     nh_.getParam("scale", SCALE);
+    nh_.getParam("planner", planner_type);
 
     rigid2d::Vector2D start(start_vec.at(0)/SCALE, start_vec.at(1)/SCALE);
     rigid2d::Vector2D goal(goal_vec.at(0)/SCALE, goal_vec.at(1)/SCALE);
@@ -118,9 +120,12 @@ int main(int argc, char** argv)
 
     ros::Publisher path_pub = nh.advertise<visualization_msgs::MarkerArray>("path", 1);
 
+    ros::Publisher debug_pub = nh.advertise<visualization_msgs::MarkerArray>("path_debug", 1);
+
     // Init Marker Array
     visualization_msgs::MarkerArray map_arr;
     visualization_msgs::MarkerArray path_arr;
+    visualization_msgs::MarkerArray path_debug;
 
     // Init Marker
     visualization_msgs::Marker marker;
@@ -226,10 +231,25 @@ int main(int argc, char** argv)
 
     ROS_INFO("PRM Built!");
 
-    // PLAN on PRM using A*
-    global::Astar astar(obstacles_v);
+    // PLAN on PRM using A* or Theta*
 
-    auto path = astar.plan(start, goal, configurations);
+    std::vector<global::Node> path;
+    std::vector<global::Node> path2;
+
+    if (planner_type == "astar")
+    {
+      ROS_INFO("Planning using A*!");
+      global::Astar astar(obstacles_v, inflate);
+      path = astar.plan(start, goal, configurations);
+    } else
+    {
+      ROS_INFO("Planning using Theta*!");
+      global::Thetastar theta_star(obstacles_v, inflate);
+      path = theta_star.plan(start, goal, configurations);
+      ROS_INFO("Planning using A*!");
+      global::Astar astar(obstacles_v, inflate);
+      path2 = astar.plan(start, goal, configurations);
+    }
 
     // DRAW PATH
     int path_marker_id = 0;
@@ -253,6 +273,32 @@ int main(int argc, char** argv)
     path_marker.id = path_marker_id;
     path_arr.markers.push_back(path_marker);
 
+    // DRAW DEBUG PATH
+    path_marker_id = 0;
+    path_marker.points.clear();
+    path_marker.color.r = 1.0;
+    path_marker.color.g = 0.2;
+    path_marker.color.b = 0.2;
+    for (auto path2_iter = path2.begin(); path2_iter != path2.end(); path2_iter++)
+    {
+        // Add node as marker vertex
+        geometry_msgs::Point vtx;
+        vtx.x = path2_iter->vertex.coords.x;
+        vtx.y = path2_iter->vertex.coords.y;
+        vtx.z = 0.0;
+        path_marker.points.push_back(vtx);
+
+        // Also push back cylinders
+        path_sph_mkr.pose.position.x = path2_iter->vertex.coords.x;
+        path_sph_mkr.pose.position.y = path2_iter->vertex.coords.y;
+        path_sph_mkr.id = path_marker_id;
+        path_marker_id++;
+        path_debug.markers.push_back(path_sph_mkr);
+
+    }
+    path_marker.id = path_marker_id;
+    path_debug.markers.push_back(path_marker);
+
     ros::Rate rate(frequency);
 
     // Main While
@@ -265,6 +311,9 @@ int main(int argc, char** argv)
 
         // Publish Path
         path_pub.publish(path_arr);
+
+        // Publish Path DEBUG
+        debug_pub.publish(path_debug);
         rate.sleep();
     }
 

@@ -40,6 +40,9 @@ namespace global
 
         // Map minimum coordinatesin x,y
         Vector2D map_min;
+
+        // Robot's inflation radius for collision checking
+        double inflate_robot;
     };
 }
 

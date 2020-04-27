@@ -8,13 +8,14 @@ namespace global
 		cell = Cell(Vector2D(), 0.0);
 	}
 
-	Astar::Astar(std::vector<Obstacle> & obstacles_)
+	Astar::Astar(const std::vector<Obstacle> & obstacles_, const double & inflate_robot_)
 	{
 		obstacles = obstacles_;
+		inflate_robot = inflate_robot_;
 	}
 
 	// PRM version
-	std::vector<Node> Astar::plan(Vector2D & start, Vector2D & goal, std::vector<Vertex> & map)
+	std::vector<Node> Astar::plan(const Vector2D & start, const Vector2D & goal, std::vector<Vertex> & map)
 	{
 		PRM = map;
 
@@ -140,29 +141,7 @@ namespace global
 	    		} else
 	    		// Potentially modify existing node and resort open list
 	    		{
-	    			// Calculate a new tentative g cost
-	    			double gcost = current_node.gcost + map::euclidean_distance(neighbour.vertex.coords.x - current_node.vertex.coords.x,
-	    													  					   neighbour.vertex.coords.y - current_node.vertex.coords.y);
-	    			if (gcost < neighbour.gcost)
-	    			// Modify Node
-	    			{
-	    				// Update g cost
-	    				neighbour.gcost = gcost;
-	    				// Update f cost
-	    				neighbour.fcost = neighbour.gcost + neighbour.hcost;
-	    				// Update parent
-	    				neighbour.parent_id = current_node.vertex.id;
-
-	    				// If this happens, we need to re-sort the open list
-	    				std::priority_queue <Node, std::vector<Node>, HeapComparator > temp_open_list;
-	    				while (!open_list.empty())
-	    				{
-	    					temp_open_list.push(open_list.top());
-	    					open_list.pop();
-	    				}
-
-	    				open_list = temp_open_list;
-	    			}
+	    			update_node(open_list, neighbour, current_node);
 	    		}
 	    	}
 	    }
@@ -173,7 +152,40 @@ namespace global
 
 	}
 
-	std::vector<Node> Astar::trace_path(Node & final_node, std::set<Node, std::less<>> & closed_list)
+	void Astar::update_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node)
+	{
+		// Calculate a new tentative g cost
+		double gcost = current_node.gcost + map::euclidean_distance(neighbour.vertex.coords.x - current_node.vertex.coords.x,
+												  					   neighbour.vertex.coords.y - current_node.vertex.coords.y);
+		if (gcost < neighbour.gcost)
+		// Modify Node
+		{
+			// Update g cost
+			neighbour.gcost = gcost;
+			// Update f cost
+			neighbour.fcost = neighbour.gcost + neighbour.hcost;
+			// Update parent
+			neighbour.parent_id = current_node.vertex.id;
+
+			// If this happens, we need to re-sort the open list
+			std::priority_queue <Node, std::vector<Node>, HeapComparator > temp_open_list;
+			while (!open_list.empty())
+			{
+				Node temp = open_list.top();
+				if (temp.vertex.id == neighbour.vertex.id)
+				{
+					temp = neighbour;
+				}
+				temp_open_list.push(temp);
+				open_list.pop();
+			}
+
+			open_list = temp_open_list;
+		}
+
+	}
+
+	std::vector<Node> Astar::trace_path(const Node & final_node, const std::set<Node, std::less<>> & closed_list)
 	{
 		// First node in the vector is 'final node'
 		std::vector<Node> path{final_node};
@@ -186,6 +198,7 @@ namespace global
 
 		while (!done)
 		{
+			// std::cout << "GOING TO PARENT: " << path.back().parent_id << std::endl;
 			next_node = *closed_list.find(path.back().parent_id);
 			path.push_back(next_node);
 			if (next_node.parent_id == -1)
@@ -201,7 +214,112 @@ namespace global
 		return path;
 	}
 
-	Vertex find_nearest_node(Vector2D & position, std::vector<Vertex> & map)
+
+	// The overridden update_node fcn with line of sight check
+	void Thetastar::update_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node)
+	{
+		// First, do line of sight check between PARENT of current node and neighbour
+		bool clear = true;
+
+		int grandparent_id = current_node.parent_id;
+		if (grandparent_id == -1)
+		{
+			// There is no grandparent since this is the start node
+			clear = false;
+		}
+
+		if (clear)
+		{
+			for (auto obs_iter = obstacles.begin(); obs_iter != obstacles.end(); obs_iter++)
+			{
+				for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
+				{
+					if (too_close(neighbour.vertex, PRM.at(grandparent_id), Vertex(*v_iter), inflate_robot))
+					{
+						clear = false;
+						break;
+					}
+				}
+
+				// No need to loop over other obstacles if not clear
+				if (!clear)
+				{
+					break;
+				}
+			}
+
+		}
+
+		if (!clear)
+		// Perform vanilla update from A*
+		{
+			// Calculate a new tentative g cost
+			double gcost = current_node.gcost + map::euclidean_distance(neighbour.vertex.coords.x - current_node.vertex.coords.x,
+													  					   neighbour.vertex.coords.y - current_node.vertex.coords.y);
+			if (gcost < neighbour.gcost)
+			// Modify Node
+			{
+				// Update g cost
+				neighbour.gcost = gcost;
+				// Update f cost
+				neighbour.fcost = neighbour.gcost + neighbour.hcost;
+				// Update parent
+				neighbour.parent_id = current_node.vertex.id;
+
+				// If this happens, we need to re-sort the open list
+				std::priority_queue <Node, std::vector<Node>, HeapComparator > temp_open_list;
+				while (!open_list.empty())
+				{
+					Node temp = open_list.top();
+					if (temp.vertex.id == neighbour.vertex.id)
+					{
+						temp = neighbour;
+					}
+					temp_open_list.push(temp);
+					open_list.pop();
+					}
+
+				open_list = temp_open_list;
+			}
+
+		} else
+		// Perform cost update with new parent
+		{
+			// g cost of grandparent = current_node gcost - dist(grandparent->current)
+			double grandparent_gcost = current_node.gcost - map::euclidean_distance(current_node.vertex.coords.x - PRM.at(grandparent_id).coords.x,
+													  					            current_node.vertex.coords.y - PRM.at(grandparent_id).coords.y);
+			// Calculate a new tentative g cost
+			double gcost = grandparent_gcost + map::euclidean_distance(neighbour.vertex.coords.x - PRM.at(grandparent_id).coords.x,
+													  					neighbour.vertex.coords.y - PRM.at(grandparent_id).coords.y);
+			if (gcost < neighbour.gcost)
+			// Modify Node
+			{
+				// Update g cost
+				neighbour.gcost = gcost;
+				// Update f cost
+				neighbour.fcost = neighbour.gcost + neighbour.hcost;
+				// Update parent with PARENT of parent
+				neighbour.parent_id = grandparent_id;
+
+				// If this happens, we need to re-sort the open list
+				std::priority_queue <Node, std::vector<Node>, HeapComparator > temp_open_list;
+				while (!open_list.empty())
+				{
+					Node temp = open_list.top();
+					if (temp.vertex.id == neighbour.vertex.id)
+					{
+						temp = neighbour;
+					}
+					temp_open_list.push(temp);
+					open_list.pop();
+				}
+
+				open_list = temp_open_list;
+			}
+		}
+	}
+
+	Vertex find_nearest_node(const Vector2D & position, const std::vector<Vertex> & map)
 	{
 		double min_dist = map::euclidean_distance(position.x - map.at(0).coords.x, position.y - map.at(0).coords.y);
 		int min_idx = 0;

@@ -54,51 +54,56 @@ namespace global
         } 
     }; 
 
-    /// \brief stores Obstacle(s) to construct basic Planner
+    /// \brief A* Planner
     class Astar : public GlobalPlanner
     {
     public:
         /// \brief constructor to initialize the A* Planner
-        Astar(std::vector<Obstacle> & obstacles_);
+        Astar(const std::vector<Obstacle> & obstacles_, const double & inflate_robot_);
 
         // \brief Plans a path on a PRM.
         // \param start: the starting coordinates
         // \param goal: the goal coordinates
-        // \param map: the PRM
+        // \param map: the PRM - may be modified if shorter paths are found
         // \returns: the path as a vector of Nodes
-        std::vector<Node> plan(Vector2D & start, Vector2D & goal, std::vector<Vertex> & map);
+        std::vector<Node> plan(const Vector2D & start, const Vector2D & goal, std::vector<Vertex> & map);
+
+        // \brief potentially modify the g cost and parent of a Node. virtual so it can be overriden by Thetastar.
+        // \param open_list: list containing nodes to evaluate. Not const because it can be modified
+        // \param neighbour: Node in the open list being potentially modified (also not const)
+        virtual void update_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node);
 
         // \brief returns the path planned on the PRM
         // \param closed_list: Nodes to traverse
-        std::vector<Node> trace_path(Node & final_node, std::set<Node, std::less<>> & closed_list);
+        std::vector<Node> trace_path(const Node & final_node, const std::set<Node, std::less<>> & closed_list);
 
         // \brief Plans a path on a Grid.
         // \param start: the starting coordinates
         // \param goal: the goal coordinates
         // \param map: the Grid Map
         // \returns: the path as a vector of Nodes
-        std::vector<Node> plan(Vector2D & start, Vector2D & goal, std::vector<Cell> & map);
+        std::vector<Node> plan(const Vector2D & start, const Vector2D & goal, const std::vector<Cell> & map);
+    };
 
-    protected:
-        std::vector<Vertex> PRM;
+    /// \brief Theta* Planner
+    class Thetastar : public Astar
+    {
+    public:
 
-        std::vector<Cell> GRID;
+        // Inherit constructor from A*
+        using Astar::Astar;
 
-         // Map obstacles
-        std::vector<Obstacle> obstacles;
-
-        // Map maximum coordinatesin x,y
-        Vector2D map_max;
-
-        // Map minimum coordinatesin x,y
-        Vector2D map_min;
+        // \brief Overriden: potentially modify the g cost and parent of a Node. May get parent of parent as parent depending on line of sight
+        // \param open_list: list containing nodes to evaluate. Not const because it can be modified
+        // \param neighbour: Node in the open list being potentially modified (also not const)
+        void update_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node) override;
     };
 
 
     // \brief returns the vertex that most closely matches the given cartesian coordinates
     // \param position: the coordinates
     // \param map: the map whose elements are being searched for coordinates
-    Vertex find_nearest_node(Vector2D & position, std::vector<Vertex> & map);
+    Vertex find_nearest_node(const Vector2D & position, const std::vector<Vertex> & map);
 }
 
 #endif

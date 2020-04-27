@@ -11,6 +11,7 @@ Panels:
         - /Obstacles1
         - /PRM1
         - /PATH1
+        - /PATH DEBUG1
       Splitter Ratio: 0.5
     Tree Height: 714
   - Class: rviz/Selection
@@ -160,6 +161,14 @@ Visualization Manager:
         "": true
       Queue Size: 100
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /path_debug
+      Name: PATH DEBUG
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -224,5 +233,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1128
-  X: 175
+  X: 174
   Y: 0

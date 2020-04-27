@@ -126,6 +126,13 @@ namespace map
         std::vector<Vertex> configurations;
     };
 
+    // \brief Checks whether a potential Edge intersects a Polygon.
+    // 'map::PRM::no_collision(const Vertex & q, const Vertex & q_prime, const double & inflate_robot)' calls this function.
+    // \param q: the main Vertex being examined
+    // \param q_prime: the second Vertex being examined
+    // \param obs_iter: iterator for the Obstacle (Polygon) whose vertices we examine.
+    bool no_intersect(const Vertex & q, const Vertex & q_prime, const std::vector<Obstacle>::iterator & obs_iter);
+
     // \brief Checks whether a potential Vertex lies on an Obstacle. 'map::PRM::sample_configurations' calls this function.
     // \param q: the Vertex being examined
     bool not_inside(const Vertex & q, const std::vector<Obstacle> & obstacles, const double & inflate_robot);

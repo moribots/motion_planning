@@ -146,13 +146,13 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /prm
       Name: PRM
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /path
@@ -233,5 +233,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1128
-  X: 174
+  X: 173
   Y: 0

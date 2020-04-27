@@ -16,11 +16,14 @@ Completed:
 In progress:
 
 * The `global_planner` package:
-	- A* on PRM
+	- A* (green) on PRM
 
 	<img src="global_planner/media/astar.png" alt="ASTAR" width="300"/>
 
-	- Theta* on PRM
+	- Theta* (green) on PRM (A* in red for comparison)
+
+	<img src="global_planner/media/astar.png" alt="ASTAR" width="300"/>
+
 	- Incremental Phi* on Grid
 	- Potential Field on Grid
 * Local planner:

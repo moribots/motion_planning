@@ -125,17 +125,9 @@ namespace global
 	    			// hcost is distance from neighbor to goal
 	    			neighbour.hcost = map::euclidean_distance(neighbour.vertex.coords.x - goal_node.vertex.coords.x,
 	    													  neighbour.vertex.coords.y - goal_node.vertex.coords.y);
-	    			// gcost is current node's gcost + distance from neighbor to current node
-	    			neighbour.gcost = current_node.gcost + map::euclidean_distance(neighbour.vertex.coords.x - current_node.vertex.coords.x,
-	    													  					   neighbour.vertex.coords.y - current_node.vertex.coords.y);
-	    			// Update f cost
-	    			neighbour.fcost = neighbour.gcost + neighbour.hcost;
-
-	    			// Add parent id
-	    			neighbour.parent_id = current_node.vertex.id;
-
-	    			// Push to open list
-	    			open_list.push(neighbour);
+	    			
+	    			create_node(open_list, neighbour, current_node);
+	    			// Push to record keeping set
 	    			open_list_v.insert(neighbour.vertex.id);
 
 	    		} else
@@ -150,6 +142,21 @@ namespace global
 	    std::cout << "No valid path! returning start node" << std::endl;
 	    return std::vector<Node>{start_node};
 
+	}
+
+	void Astar::create_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node)
+	{
+		// gcost is current node's gcost + distance from neighbor to current node
+		neighbour.gcost = current_node.gcost + map::euclidean_distance(neighbour.vertex.coords.x - current_node.vertex.coords.x,
+												  					   neighbour.vertex.coords.y - current_node.vertex.coords.y);
+		// Update f cost
+		neighbour.fcost = neighbour.gcost + neighbour.hcost;
+
+		// Add parent id
+		neighbour.parent_id = current_node.vertex.id;
+
+		// Push to open list
+		open_list.push(neighbour);
 	}
 
 	void Astar::update_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node)
@@ -190,16 +197,12 @@ namespace global
 		// First node in the vector is 'final node'
 		std::vector<Node> path{final_node};
 
-		Node next_node = *closed_list.find(path.back().parent_id);
-
-		path.push_back(next_node);
-
 		bool done = false;
 
 		while (!done)
 		{
-			// std::cout << "GOING TO PARENT: " << path.back().parent_id << std::endl;
-			next_node = *closed_list.find(path.back().parent_id);
+			// std::cout << "GOING FROM NODE: " << path.back().vertex.id << " TO: " << path.back().parent_id << std::endl;
+			Node next_node = *closed_list.find(path.back().parent_id);
 			path.push_back(next_node);
 			if (next_node.parent_id == -1)
 			{
@@ -214,9 +217,7 @@ namespace global
 		return path;
 	}
 
-
-	// The overridden update_node fcn with line of sight check
-	void Thetastar::update_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node)
+	void Thetastar::create_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node)
 	{
 		// First, do line of sight check between PARENT of current node and neighbour
 		bool clear = true;
@@ -225,6 +226,7 @@ namespace global
 		if (grandparent_id == -1)
 		{
 			// There is no grandparent since this is the start node
+			grandparent_id = current_node.vertex.id;
 			clear = false;
 		}
 
@@ -232,6 +234,14 @@ namespace global
 		{
 			for (auto obs_iter = obstacles.begin(); obs_iter != obstacles.end(); obs_iter++)
 			{
+				// Edge on Edge Check
+				if (!no_intersect(neighbour.vertex, PRM.at(grandparent_id), obs_iter))
+				{
+					clear = false;
+					break;
+				}
+
+				// Edge Near Point Check
 				for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
 				{
 					if (too_close(neighbour.vertex, PRM.at(grandparent_id), Vertex(*v_iter), inflate_robot))
@@ -253,34 +263,80 @@ namespace global
 		if (!clear)
 		// Perform vanilla update from A*
 		{
-			// Calculate a new tentative g cost
-			double gcost = current_node.gcost + map::euclidean_distance(neighbour.vertex.coords.x - current_node.vertex.coords.x,
-													  					   neighbour.vertex.coords.y - current_node.vertex.coords.y);
-			if (gcost < neighbour.gcost)
-			// Modify Node
+			// Use UNMODIFIED inherited function
+			Astar::create_node(open_list, neighbour, current_node);
+
+		} else
+		{
+			// g cost of grandparent = current_node gcost - dist(grandparent->current)
+			double grandparent_gcost = current_node.gcost - map::euclidean_distance(current_node.vertex.coords.x - PRM.at(grandparent_id).coords.x,
+													  					            current_node.vertex.coords.y - PRM.at(grandparent_id).coords.y);
+
+			// g cost is grandparent node g cost + dist(grandparent -> neighbor)
+			neighbour.gcost = grandparent_gcost + map::euclidean_distance(neighbour.vertex.coords.x - PRM.at(grandparent_id).coords.x,
+													  					neighbour.vertex.coords.y - PRM.at(grandparent_id).coords.y);
+			// Update f cost
+			neighbour.fcost = neighbour.gcost + neighbour.hcost;
+
+			// Add parent id
+			neighbour.parent_id = grandparent_id;
+
+			// Push to open list
+			open_list.push(neighbour);
+
+		}
+	}
+
+
+	// The overridden update_node fcn with line of sight check
+	void Thetastar::update_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node)
+	{
+		// First, do line of sight check between PARENT of current node and neighbour
+		bool clear = true;
+
+		int grandparent_id = current_node.parent_id;
+		if (grandparent_id == -1)
+		{
+			// There is no grandparent since this is the start node
+			grandparent_id = current_node.vertex.id;
+			clear = false;
+		}
+
+		if (clear)
+		{
+			for (auto obs_iter = obstacles.begin(); obs_iter != obstacles.end(); obs_iter++)
 			{
-				// Update g cost
-				neighbour.gcost = gcost;
-				// Update f cost
-				neighbour.fcost = neighbour.gcost + neighbour.hcost;
-				// Update parent
-				neighbour.parent_id = current_node.vertex.id;
-
-				// If this happens, we need to re-sort the open list
-				std::priority_queue <Node, std::vector<Node>, HeapComparator > temp_open_list;
-				while (!open_list.empty())
+				// Edge on Edge Check
+				if (!no_intersect(neighbour.vertex, PRM.at(grandparent_id), obs_iter))
 				{
-					Node temp = open_list.top();
-					if (temp.vertex.id == neighbour.vertex.id)
-					{
-						temp = neighbour;
-					}
-					temp_open_list.push(temp);
-					open_list.pop();
-					}
+					clear = false;
+					break;
+				}
 
-				open_list = temp_open_list;
+				// Edge Near Point Check
+				for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
+				{
+					if (too_close(neighbour.vertex, PRM.at(grandparent_id), Vertex(*v_iter), inflate_robot))
+					{
+						clear = false;
+						break;
+					}
+				}
+
+				// No need to loop over other obstacles if not clear
+				if (!clear)
+				{
+					break;
+				}
 			}
+
+		}
+
+		if (!clear)
+		// Perform vanilla update from A*
+		{
+			// Use UNMODIFIED inherited function
+			Astar::update_node(open_list, neighbour, current_node);
 
 		} else
 		// Perform cost update with new parent
@@ -299,7 +355,9 @@ namespace global
 				// Update f cost
 				neighbour.fcost = neighbour.gcost + neighbour.hcost;
 				// Update parent with PARENT of parent
+				// std::cout << "PARENT ID: " << current_node.vertex.id << std::endl;
 				neighbour.parent_id = grandparent_id;
+				// std::cout << "GRANDPARENT (NEW PARENT) ID: " << neighbour.parent_id << std::endl;
 
 				// If this happens, we need to re-sort the open list
 				std::priority_queue <Node, std::vector<Node>, HeapComparator > temp_open_list;

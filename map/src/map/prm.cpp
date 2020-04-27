@@ -151,7 +151,34 @@ namespace map
 		}
 	}
 
-	bool PRM::no_collision(const Vertex & q, const Vertex & q_prime, const std::vector<Obstacle>::iterator & obs_iter)
+	bool PRM::no_collision(const Vertex & q, const Vertex & q_prime, const double & inflate_robot)
+	{
+		bool free = true;
+		// Loop over all obstacles
+		for (auto obs_iter = obstacles.begin(); obs_iter != obstacles.end(); obs_iter++)
+		{
+			// int i = static_cast<int>(std::distance(obstacles.begin(), obs_iter));
+			// std::cout << "Obstacle #" << i << std::endl;
+			if (!no_intersect(q, q_prime, obs_iter))
+				// Collision! Not a valid Edge, exit here.
+			{
+				return false;
+			} else {
+				// Check if inflated robot intersects edge
+				for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
+				{
+					// If one Vertex is to close to an Edge, return false and Exit. Otherwise keep checking.
+					if (too_close(q, q_prime, Vertex(*v_iter), inflate_robot))
+					{
+						return false;
+					}
+				}
+			}
+		}
+		return free;
+	}
+
+	bool no_intersect(const Vertex & q, const Vertex & q_prime, const std::vector<Obstacle>::iterator & obs_iter)
 	{
 		// Initialize tE/tL: the max/min entering/leaving segment parameters.
 		// NOTE: these evolve over time for each obstacle.
@@ -235,33 +262,6 @@ namespace map
 		// Entering Point: P(tE) = q + tE * dS
 		// Leaving Point: P(tL) =  q + tL * dS
 		return false;
-	}
-
-	bool PRM::no_collision(const Vertex & q, const Vertex & q_prime, const double & inflate_robot)
-	{
-		bool free = true;
-		// Loop over all obstacles
-		for (auto obs_iter = obstacles.begin(); obs_iter != obstacles.end(); obs_iter++)
-		{
-			// int i = static_cast<int>(std::distance(obstacles.begin(), obs_iter));
-			// std::cout << "Obstacle #" << i << std::endl;
-			if (!no_collision(q, q_prime, obs_iter))
-				// Collision! Not a valid Edge, exit here.
-			{
-				return false;
-			} else {
-				// Check if inflated robot intersects edge
-				for (auto v_iter = obs_iter->vertices.begin(); v_iter != obs_iter->vertices.end(); v_iter++)
-				{
-					// If one Vertex is to close to an Edge, return false and Exit. Otherwise keep checking.
-					if (too_close(q, q_prime, Vertex(*v_iter), inflate_robot))
-					{
-						return false;
-					}
-				}
-			}
-		}
-		return free;
 	}
 
 	bool not_inside(const Vertex & q, const std::vector<Obstacle> & obstacles, const double & inflate_robot)

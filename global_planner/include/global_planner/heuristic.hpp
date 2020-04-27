@@ -73,6 +73,11 @@ namespace global
         // \param neighbour: Node in the open list being potentially modified (also not const)
         virtual void update_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node);
 
+        // \brief insert a Node into the open list as is defined in the A* method
+        // \param open_list: list containing nodes to evaluate. Not const because it can be modified
+        // \param neighbour: Node to be added to open list (also not const)
+        virtual void create_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node);
+
         // \brief returns the path planned on the PRM
         // \param closed_list: Nodes to traverse
         std::vector<Node> trace_path(const Node & final_node, const std::set<Node, std::less<>> & closed_list);
@@ -92,6 +97,11 @@ namespace global
 
         // Inherit constructor from A*
         using Astar::Astar;
+
+        // \brief insert a Node into the open list as is defined in the A* method
+        // \param open_list: list containing nodes to evaluate. Not const because it can be modified
+        // \param neighbour: Node to be added to open list (also not const)
+        void create_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node) override;
 
         // \brief Overriden: potentially modify the g cost and parent of a Node. May get parent of parent as parent depending on line of sight
         // \param open_list: list containing nodes to evaluate. Not const because it can be modified

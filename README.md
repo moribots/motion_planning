@@ -22,7 +22,7 @@ In progress:
 
 	- Theta* (green) on PRM (A* in red for comparison)
 
-	<img src="global_planner/media/astar.png" alt="ASTAR" width="300"/>
+	<img src="global_planner/media/thetastar.png" alt="ASTAR" width="300"/>
 
 	- Incremental Phi* on Grid
 	- Potential Field on Grid

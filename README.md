@@ -24,10 +24,10 @@ In progress:
 
 	<img src="global_planner/media/thetastar.png" alt="ASTAR" width="300"/>
 
-	- Incremental Phi* on Grid
-	- Potential Field on Grid
+	- D* Lite V2 on Grid
+	- Potential Field with local minimum escape on Grid
 * Local planner:
 	- Dynamic Window Approach
 * Trajectory Optimization:
-	- Model Predictive Integral Control
+	- Model Predictive Path Integral Control
 

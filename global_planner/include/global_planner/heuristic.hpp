@@ -68,15 +68,15 @@ namespace global
         // \returns: the path as a vector of Nodes
         std::vector<Node> plan(const Vector2D & start, const Vector2D & goal, std::vector<Vertex> & map);
 
-        // \brief potentially modify the g cost and parent of a Node. virtual so it can be overriden by Thetastar.
+        // \brief potentially modify the g cost and parent of a Node in PRM. virtual so it can be overriden by Thetastar.
         // \param open_list: list containing nodes to evaluate. Not const because it can be modified
         // \param neighbour: Node in the open list being potentially modified (also not const)
-        virtual void update_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node);
+        virtual void update_vtx(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node);
 
-        // \brief insert a Node into the open list as is defined in the A* method
+        // \brief insert a Node into the open list as is defined in the A* method for PRM
         // \param open_list: list containing nodes to evaluate. Not const because it can be modified
         // \param neighbour: Node to be added to open list (also not const)
-        virtual void create_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node);
+        virtual void create_vtx(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node);
 
         // \brief returns the path planned on the PRM
         // \param closed_list: Nodes to traverse
@@ -89,6 +89,16 @@ namespace global
         // \returns: the path as a vector of Nodes
         std::vector<Node> plan(const Vector2D & start, const Vector2D & goal, const std::vector<Cell> & map);
 
+        // \brief potentially modify the g cost and parent of a Node in GRID. virtual so it can be overriden by Thetastar.
+        // \param open_list: list containing nodes to evaluate. Not const because it can be modified
+        // \param neighbour: Node in the open list being potentially modified (also not const)
+        virtual void update_cell(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node);
+
+        // \brief insert a Node into the open list as is defined in the A* method for GRID
+        // \param open_list: list containing nodes to evaluate. Not const because it can be modified
+        // \param neighbour: Node to be added to open list (also not const)
+        virtual void create_cell(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node);
+
         // \brief Computes the heuristic to the goal using a custom admissible heuristic optimized for 8-point connectivity
         // NOTE: distance between nodes is simply computed using euclidean distance
         // \param n1: start Node for heuristic
@@ -99,7 +109,7 @@ namespace global
         // \brief retrieves the 8 neighbours of a node in a grid
         // \param n: Node whose neighbours to retrieve
         // \returns: vector of Nodes that are n's neighbours
-        std::vector<Node> get_neighbours(const Node & n, const std::vector<Cell> & map);
+        std::vector<Cell> get_neighbours(const Node & n, const std::vector<Cell> & map);
     };
 
     /// \brief Theta* Planner
@@ -110,22 +120,27 @@ namespace global
         // Inherit constructor from A*
         using Astar::Astar;
 
-        // \brief insert a Node into the open list as is defined in the A* method
+        // \brief insert a Node into the open list as is defined in the A* method for PRM
         // \param open_list: list containing nodes to evaluate. Not const because it can be modified
         // \param neighbour: Node to be added to open list (also not const)
-        void create_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node) override;
+        void create_vtx(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node) override;
 
-        // \brief Overriden: potentially modify the g cost and parent of a Node. May get parent of parent as parent depending on line of sight
+        // \brief Overriden: potentially modify the g cost and parent of a Node in PRM. May get parent of parent as parent depending on line of sight
         // \param open_list: list containing nodes to evaluate. Not const because it can be modified
         // \param neighbour: Node in the open list being potentially modified (also not const)
-        void update_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node) override;
+        void update_vtx(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node) override;
     };
 
 
-    // \brief returns the vertex that most closely matches the given cartesian coordinates
+    // \brief returns the vertex that most closely matches the given cartesian coordinates in PRM
     // \param position: the coordinates
     // \param map: the map whose elements are being searched for coordinates
     Vertex find_nearest_node(const Vector2D & position, const std::vector<Vertex> & map);
+
+    // \brief returns the vertex that most closely matches the given cartesian coordinates in GRID
+    // \param position: the coordinates
+    // \param map: the map whose elements are being searched for coordinates
+    Cell find_nearest_node(const Vector2D & position, const std::vector<Cell> & map);
 }
 
 #endif

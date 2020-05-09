@@ -42,6 +42,24 @@ namespace map
 				cells.push_back(cell);
 			}
 		}
+
+		// Populate more cell information such as row-major order and grid index
+		for(unsigned int i = 0; i < cells.size(); i++)
+		{
+			// Convert from row-major-order to grid coordinates
+			auto index = rowmajor2grid(i, static_cast<int>(ycells.size()));
+			// Convert back to rmj
+			int rmj = grid2rowmajor(index.x, index.y, static_cast<int>(ycells.size()));
+			index.row_major = rmj;
+
+			if (!(rmj == static_cast<int>(i)))
+			{
+				throw std::runtime_error("Row-Major Order Conversion Failed!\
+										 \n  where(): Grid::occupancy_grid(std::vector<int8_t> & map)");
+			}
+
+			cells.at(i).index = index;
+		}
 	}
 
 	Index Grid::world2grid(const Cell & cell, const double & resolution)
@@ -105,30 +123,16 @@ namespace map
 
 		for(unsigned int i = 0; i < cells.size(); i++)
 		{
-			// Convert from row-major-order to grid coordinates
-			auto index = rowmajor2grid(i, static_cast<int>(ycells.size()));
-			// Convert back to rmj
-			int rmj = grid2rowmajor(index.x, index.y, static_cast<int>(ycells.size()));
-			index.row_major = rmj;
-
-			if (!(rmj == static_cast<int>(i)))
-			{
-				throw std::runtime_error("Row-Major Order Conversion Failed!\
-										 \n  where(): Grid::occupancy_grid(std::vector<int8_t> & map)");
-			}
-
-			cells.at(i).index = index;
-
 			// For each cell type, assign a value to map
 			if (cells.at(i).celltype == Free)
 			{
-				map.at(rmj) = 0;
+				map.at(i) = 0;
 			} else if (cells.at(i).celltype == Inflation)
 			{
-				map.at(rmj) = 50;
+				map.at(i) = 50;
 			} else if (cells.at(i).celltype == Occupied)
 			{
-				map.at(rmj) = 100;
+				map.at(i) = 100;
 			}
 		}
 	}

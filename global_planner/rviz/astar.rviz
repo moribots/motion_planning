@@ -12,6 +12,7 @@ Panels:
         - /PRM1
         - /PATH1
         - /PATH DEBUG1
+        - /GridMap1
       Splitter Ratio: 0.5
     Tree Height: 714
   - Class: rviz/Selection
@@ -166,8 +167,18 @@ Visualization Manager:
       Marker Topic: /path_debug
       Name: PATH DEBUG
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
+      Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: GridMap
+      Topic: /grid_map
+      Unreliable: false
+      Use Timestamp: false
       Value: true
   Enabled: true
   Global Options:
@@ -233,5 +244,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1128
-  X: 173
+  X: 172
   Y: 0

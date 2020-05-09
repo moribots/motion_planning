@@ -33,7 +33,7 @@
   <!-- Map Visualizer Node -->
   <node name="viz_map" pkg="map" type="viz_map" output="screen">
     <rosparam command="load" file="$(find map)/config/map.yaml"/>
-    <param name="scale" value="5.0"/>
+    <param name="scale" value="10.0"/>
   </node>
 
   <!-- PRM with A* Node -->
@@ -47,7 +47,9 @@
     <param name="planner" value="thetastar"/>
     <remap from="line_map" to="line_prm"/>
     <remap from="sph_map" to="sph_prm"/>
-    <param name="scale" value="5.0"/>
+    <param name="scale" value="10.0"/>
+    <param name="resolution" value="0.03"/>
+    <param name="map_type" value="grid"/>
   </node>
 
 </launch>

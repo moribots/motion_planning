@@ -263,6 +263,9 @@ namespace global
 	    Node current_node;
 	    // Find GRID cell whose coordinates most closely match the start coordinates
 	    current_node.cell = find_nearest_node(start, GRID);
+	    std::cout << "START IDX: [" << current_node.cell.index.x << ", " << current_node.cell.index.y << "]" << std::endl;
+
+	    std::cout << "GOAL IDX: [" << goal_node.cell.index.x << ", " << goal_node.cell.index.y << "]" << std::endl;
 
 	    open_list.push(current_node);
 
@@ -281,6 +284,12 @@ namespace global
 	    while (!open_list.empty())
 	    {
 	    	iterations++;
+
+	    	if (iterations > 10000)
+	    	{
+	    		break;
+	    	}
+	    	std::cout << "Iteration: " << iterations << std::endl;
 
 	    	// Get the minimum node on the open list
 	    	current_node = open_list.top();
@@ -336,14 +345,14 @@ namespace global
 	    			// hcost is distance from neighbor to goal using our admissible heuristic
 	    			neighbour.hcost = heuristic(neighbour, goal_node);
 	    			
-	    			create_vtx(open_list, neighbour, current_node);
+	    			create_cell(open_list, neighbour, current_node);
 	    			// Push to record keeping set
 	    			open_list_v.insert(neighbour.cell.index.row_major);
 
 	    		} else
 	    		// Potentially modify existing node and resort open list
 	    		{
-	    			update_vtx(open_list, neighbour, current_node);
+	    			update_cell(open_list, neighbour, current_node);
 	    		}
 	    	}
 	    }

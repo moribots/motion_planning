@@ -14,6 +14,8 @@
 
 #include "map/map.hpp"
 #include "map/prm.hpp"
+#include "map/grid.hpp"
+#include <nav_msgs/OccupancyGrid.h>
 #include "global_planner/heuristic.hpp"
 
 #include "nuslam/TurtleMap.h"
@@ -38,9 +40,12 @@ int main(int argc, char** argv)
     double SCALE = 10.0;
     std::string frame_id = "base_footprint";
     std::string planner_type = "astar";
+    std::string map_type = "prm";
     XmlRpc::XmlRpcValue xml_obstacles;
     std::vector<double> start_vec{7.0, 3.0};
     std::vector<double> goal_vec{7.0, 26.0};
+    // resolution by which to transform marker poses (10 cm/cell so we use 10)
+    double resolution = 0.01;
 
     // PRM Parameters
     int n = 10;
@@ -66,6 +71,8 @@ int main(int argc, char** argv)
     nh_.getParam("inflate", inflate);
     nh_.getParam("scale", SCALE);
     nh_.getParam("planner", planner_type);
+    nh_.getParam("map_type", map_type);
+    nh_.getParam("resolution", resolution);
 
     rigid2d::Vector2D start(start_vec.at(0)/SCALE, start_vec.at(1)/SCALE);
     rigid2d::Vector2D goal(goal_vec.at(0)/SCALE, goal_vec.at(1)/SCALE);
@@ -121,6 +128,12 @@ int main(int argc, char** argv)
     ros::Publisher path_pub = nh.advertise<visualization_msgs::MarkerArray>("path", 1);
 
     ros::Publisher debug_pub = nh.advertise<visualization_msgs::MarkerArray>("path_debug", 1);
+
+    ros::Publisher grid_pub = nh.advertise<nav_msgs::OccupancyGrid>("grid_map", 1);
+    // Initialize grid_map outside
+    nav_msgs::OccupancyGrid grid_map;
+    // rviz representation of the grid
+    std::vector<int8_t> map;
 
     // Init Marker Array
     visualization_msgs::MarkerArray map_arr;
@@ -184,71 +197,117 @@ int main(int argc, char** argv)
     path_sph_mkr.color.g = 0.0f;
     path_sph_mkr.color.b = 0.0f;
 
-    // Build PRM
-    map::PRM prm(obstacles_v, inflate);
-    prm.build_map(n, k, thresh);
-    // DRAW PRM
-    int prm_marker_id = 0;
-    auto configurations = prm.return_prm();
-    for (auto node_iter = configurations.begin(); node_iter != configurations.end(); node_iter++)
-    {
-        marker.points.clear();
-        marker.id = prm_marker_id;
-        prm_marker_id++;
 
-        // Check if a node has edges before plotting
-        if (node_iter->id_set.size() > 0)
-        {
-            for (auto id_iter = node_iter->id_set.begin(); id_iter != node_iter->id_set.end(); id_iter++)
-                {
-                  // Add node as first marker vertex
-                  geometry_msgs::Point first_vertex;
-                  first_vertex.x = node_iter->coords.x;
-                  first_vertex.y = node_iter->coords.y;
-                  first_vertex.z = 0.0;
-                  marker.points.push_back(first_vertex);
-
-                  // Find Vertex for each ID
-                  auto neighbor_iter = configurations.at(*id_iter);
-
-                  geometry_msgs::Point new_vertex;
-                  new_vertex.x = neighbor_iter.coords.x;
-                  new_vertex.y = neighbor_iter.coords.y;
-                  new_vertex.z = 0.0;
-                  marker.points.push_back(new_vertex);
-
-                  // Also push back cylinders
-                  sph_mkr.pose.position.x = node_iter->coords.x;
-                  sph_mkr.pose.position.y = node_iter->coords.y;
-                  sph_mkr.id = prm_marker_id;
-                  prm_marker_id++;
-                  map_arr.markers.push_back(sph_mkr);
-                }
-            // Push to Marker Array
-            map_arr.markers.push_back(marker);
-        }
-    }
-
-    ROS_INFO("PRM Built!");
-
-    // PLAN on PRM using A* or Theta*
-
+    // A* or Theta* Path
     std::vector<global::Node> path;
+    // Debug Path (Usually A* to compare with Theta*)
     std::vector<global::Node> path2;
 
-    if (planner_type == "astar")
+    if (map_type == "prm")
+      // PRM VERSION
     {
-      ROS_INFO("Planning using A*!");
-      global::Astar astar(obstacles_v, inflate);
-      path = astar.plan(start, goal, configurations);
+      // Build PRM
+      map::PRM prm(obstacles_v, inflate);
+      prm.build_map(n, k, thresh);
+      // DRAW PRM
+      int prm_marker_id = 0;
+      auto configurations = prm.return_prm();
+      for (auto node_iter = configurations.begin(); node_iter != configurations.end(); node_iter++)
+      {
+          marker.points.clear();
+          marker.id = prm_marker_id;
+          prm_marker_id++;
+
+          // Check if a node has edges before plotting
+          if (node_iter->id_set.size() > 0)
+          {
+              for (auto id_iter = node_iter->id_set.begin(); id_iter != node_iter->id_set.end(); id_iter++)
+                  {
+                    // Add node as first marker vertex
+                    geometry_msgs::Point first_vertex;
+                    first_vertex.x = node_iter->coords.x;
+                    first_vertex.y = node_iter->coords.y;
+                    first_vertex.z = 0.0;
+                    marker.points.push_back(first_vertex);
+
+                    // Find Vertex for each ID
+                    auto neighbor_iter = configurations.at(*id_iter);
+
+                    geometry_msgs::Point new_vertex;
+                    new_vertex.x = neighbor_iter.coords.x;
+                    new_vertex.y = neighbor_iter.coords.y;
+                    new_vertex.z = 0.0;
+                    marker.points.push_back(new_vertex);
+
+                    // Also push back cylinders
+                    sph_mkr.pose.position.x = node_iter->coords.x;
+                    sph_mkr.pose.position.y = node_iter->coords.y;
+                    sph_mkr.id = prm_marker_id;
+                    prm_marker_id++;
+                    map_arr.markers.push_back(sph_mkr);
+                  }
+              // Push to Marker Array
+              map_arr.markers.push_back(marker);
+          }
+      }
+
+      ROS_INFO("PRM Built!");
+
+      // PLAN on PRM using A* or Theta*
+      if (planner_type == "astar")
+      {
+        ROS_INFO("Planning using A*!");
+        global::Astar astar(obstacles_v, inflate);
+        path = astar.plan(start, goal, configurations);
+      } else
+      {
+        ROS_INFO("Planning using Theta*!");
+        global::Thetastar theta_star(obstacles_v, inflate);
+        path = theta_star.plan(start, goal, configurations);
+        ROS_INFO("Planning using A*!");
+        global::Astar astar(obstacles_v, inflate);
+        path2 = astar.plan(start, goal, configurations);
+      }
     } else
+    // GRID Version
     {
-      ROS_INFO("Planning using Theta*!");
-      global::Thetastar theta_star(obstacles_v, inflate);
-      path = theta_star.plan(start, goal, configurations);
+      // Initialize Grid
+      map::Grid grid(obstacles_v, inflate);
+
+      // Build Map
+      grid.build_map(resolution);
+
+      ROS_INFO("Grid Built!");
+
+      // Get map bounds
+      auto bounds = grid.return_map_bounds();
+      auto gridsize = grid.return_grid_dimensions();
+
+      // rviz representation of the grid
+      grid.occupancy_grid(map);
+
+      // Grid Pose
+      geometry_msgs::Pose map_pose;
+      map_pose.position.x = bounds.at(0).x;
+      map_pose.position.y = bounds.at(0).y;
+      map_pose.position.z = 0.0;
+      map_pose.orientation.x = 0.0;
+      map_pose.orientation.y = 0.0;
+      map_pose.orientation.z = 0.0;
+      map_pose.orientation.w = 1.0;
+
+      // Occupancy grid for visualization
+      grid_map.header.frame_id = frame_id;
+      grid_map.info.resolution = resolution;
+      grid_map.info.width = gridsize.at(0);
+      grid_map.info.height = gridsize.at(1);
+
+      grid_map.info.origin = map_pose;
+
       ROS_INFO("Planning using A*!");
       global::Astar astar(obstacles_v, inflate);
-      path2 = astar.plan(start, goal, configurations);
+      path = astar.plan(start, goal, grid.return_grid());
+
     }
 
     // DRAW PATH
@@ -306,8 +365,14 @@ int main(int argc, char** argv)
     {
         ros::spinOnce();
 
-        // Publish Map
+        // Publish PRM Map
         map_pub.publish(map_arr);
+
+        // Publish GRID Map
+        grid_map.header.stamp = ros::Time::now();
+        grid_map.info.map_load_time = ros::Time::now();
+        grid_map.data = map;
+        grid_pub.publish(grid_map);
 
         // Publish Path
         path_pub.publish(path_arr);

@@ -1,7 +1,7 @@
 #ifndef HEURISTIC_INCLUDE_GUARD_HPP
 #define HEURISTIC_INCLUDE_GUARD_HPP
 /// \file
-/// \brief Heuristic search library to encompass A*, Theta*, Incremental Phi*, D* planners..
+/// \brief Heuristic search library to encompass A*, Theta* planners.
 
 #include "global_planner/global_planner.hpp"
 #include <queue>
@@ -34,13 +34,19 @@ namespace global
         // node ID for generic find in both PRM and Grid
         int id = -1;
 
+        // Keys are for incremental search
+        double key1 = 0.0;
+        double key2 = 0.0;
+        double rhs = 1e12;
+
+        // NOTE: gcost will be initialized to 1e12 (inf) for LPA* and D* Lite
         double gcost, hcost, fcost = 0.0;
     };
 
     // Bolean operator so that std::find can be used with struct sub-element in closed list
-    bool operator<(const Node & n, const int & id) { return n.id < id; }
-    bool operator<(const int & id, const Node & n) { return id < n.id; }
-    bool operator<(const Node & n1, const Node & n2) { return n1.id < n2.id; }
+    inline bool operator<(const Node & n, const int & id) { return n.id < id; }
+    inline bool operator<(const int & id, const Node & n) { return id < n.id; }
+    inline bool operator<(const Node & n1, const Node & n2) { return n1.id < n2.id; }
 
     // \brief functor (function object) which compares the costs of two Nodes for heap sorting 
     class HeapComparator
@@ -56,7 +62,7 @@ namespace global
                 return n1.fcost > n2.fcost;
             }
         } 
-    }; 
+    };
 
     /// \brief A* Planner
     class Astar : public GlobalPlanner
@@ -70,7 +76,7 @@ namespace global
         // \param goal: the goal coordinates
         // \param map: the PRM - may be modified if shorter paths are found
         // \returns: the path as a vector of Nodes
-        std::vector<Node> plan(const Vector2D & start, const Vector2D & goal, std::vector<Vertex> & map);
+        virtual std::vector<Node> plan(const Vector2D & start, const Vector2D & goal, std::vector<Vertex> & map);
 
         // \brief potentially modify the g cost and parent of a Node in PRM. virtual so it can be overriden by Thetastar.
         // \param open_list: list containing nodes to evaluate. Not const because it can be modified

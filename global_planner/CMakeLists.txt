@@ -135,6 +135,7 @@ include_directories(
 add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/${PROJECT_NAME}.cpp
   src/${PROJECT_NAME}/heuristic.cpp
+  src/${PROJECT_NAME}/incremental.cpp
 )
 
 ## Add cmake target dependencies of the library

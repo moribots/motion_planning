@@ -24,6 +24,10 @@ In progress:
 
 	<img src="global_planner/media/thetastar.png" alt="ASTAR" width="300"/>
 
+	- A* (green) on Grid
+
+	<img src="global_planner/media/astar_grid.png" alt="ASTARG" width="300"/>
+
 	- D* Lite V2 on Grid
 	- Potential Field with local minimum escape on Grid
 * Local planner:

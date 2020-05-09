@@ -55,26 +55,26 @@ namespace map
         // \param cell: a grid cell
         // \param resolution: determines the grid cell size
         // \returns the grid cell's world coordinates
-        Index world2grid(const Cell & cell, const double & resolution);
+        Index world2grid(const Cell & cell, const double & resolution) const;
 
         // \brief converts grid coordinates to world coordinates and returns result
         // \param i: x-coordinate of grid cell
         // \param j: y-coordinate of grid cell
         // \param resolution: determines the grid cell size
         // \returns the grid cell's grid coordinates
-        Vector2D grid2world(const int & i, const int & j, const double & resolution);
+        Vector2D grid2world(const int & i, const int & j, const double & resolution) const;
 
         // \brief Return Grid in row-major order
         // \returns vector containing grid cells as Cell
-        std::vector<Cell> return_grid();
+        std::vector<Cell> return_grid() const;
 
         // \brief populates Occupancy Grid with values for visualization
         // \param map: the Occupancy Grid map to populate
-        void occupancy_grid(std::vector<int8_t> & map);
+        void occupancy_grid(std::vector<int8_t> & map) const;
 
         // \brief returns the width and height of the grid in cells
         // \returns int vector containing width and height respectively.
-        std::vector<int> return_grid_dimensions();
+        std::vector<int> return_grid_dimensions() const;
 
         // \brief Checks whether a potential Vertex lies on an Obstacle. 'map::PRM::sample_configurations' calls this function.
         // \param q: the Vertex being examined

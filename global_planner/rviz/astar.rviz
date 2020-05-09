@@ -56,7 +56,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 100
+      Plane Cell Count: 200
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz/TF
@@ -167,7 +167,7 @@ Visualization Manager:
       Marker Topic: /path_debug
       Name: PATH DEBUG
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 0.699999988079071
@@ -208,16 +208,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 6.283954620361328
+      Distance: 6.56973934173584
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.956433653831482
-        Y: 2.398946523666382
-        Z: 0.14123009145259857
+        X: 1.883400321006775
+        Y: 2.3111629486083984
+        Z: 0.1411420702934265
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -244,5 +244,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1128
-  X: 172
+  X: 170
   Y: 0

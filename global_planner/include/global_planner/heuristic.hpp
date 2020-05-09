@@ -14,6 +14,7 @@ namespace global
     using map::Vertex;
     using map::Cell;
     using map::Index;
+    using map::Grid;
 
     // \brief contains relevant information for heuristic planners
     struct Node
@@ -30,13 +31,16 @@ namespace global
         // row-major index for Grid or connected Vertex ID for PRM
         int parent_id = -1;
 
+        // node ID for generic find in both PRM and Grid
+        int id = -1;
+
         double gcost, hcost, fcost = 0.0;
     };
 
     // Bolean operator so that std::find can be used with struct sub-element in closed list
-    bool operator<(const Node & n, const int & id) { return n.vertex.id < id; }
-    bool operator<(const int & id, const Node & n) { return id < n.vertex.id; }
-    bool operator<(const Node & n1, const Node & n2) { return n1.vertex.id < n2.vertex.id; }
+    bool operator<(const Node & n, const int & id) { return n.id < id; }
+    bool operator<(const int & id, const Node & n) { return id < n.id; }
+    bool operator<(const Node & n1, const Node & n2) { return n1.id < n2.id; }
 
     // \brief functor (function object) which compares the costs of two Nodes for heap sorting 
     class HeapComparator
@@ -87,7 +91,7 @@ namespace global
         // \param goal: the goal coordinates
         // \param map: the Grid Map
         // \returns: the path as a vector of Nodes
-        std::vector<Node> plan(const Vector2D & start, const Vector2D & goal, const std::vector<Cell> & map);
+        std::vector<Node> plan(const Vector2D & start, const Vector2D & goal, const map::Grid & grid_, const double & resolution);
 
         // \brief potentially modify the g cost and parent of a Node in GRID. virtual so it can be overriden by Thetastar.
         // \param open_list: list containing nodes to evaluate. Not const because it can be modified
@@ -140,7 +144,7 @@ namespace global
     // \brief returns the vertex that most closely matches the given cartesian coordinates in GRID
     // \param position: the coordinates
     // \param map: the map whose elements are being searched for coordinates
-    Cell find_nearest_node(const Vector2D & position, const std::vector<Cell> & map);
+    Cell find_nearest_node(const Vector2D & position, const Grid & grid, const double & resolution);
 }
 
 #endif

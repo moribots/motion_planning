@@ -47,22 +47,25 @@ namespace map
 		for(unsigned int i = 0; i < cells.size(); i++)
 		{
 			// Convert from row-major-order to grid coordinates
-			auto index = rowmajor2grid(i, static_cast<int>(ycells.size()));
+			auto index = rowmajor2grid(i, static_cast<int>(xcells.size()));
 			// Convert back to rmj
-			int rmj = grid2rowmajor(index.x, index.y, static_cast<int>(ycells.size()));
+			int rmj = grid2rowmajor(index.x, index.y, static_cast<int>(xcells.size()));
 			index.row_major = rmj;
 
 			if (!(rmj == static_cast<int>(i)))
 			{
 				throw std::runtime_error("Row-Major Order Conversion Failed!\
-										 \n  where(): Grid::occupancy_grid(std::vector<int8_t> & map)");
+										 \n  where(): Grid::build_map(const double & resolution)");
 			}
 
 			cells.at(i).index = index;
+
+			// std::cout << "Node at [" << cells.at(i).index.x << ", " << cells.at(i).index.y << "]" << \
+	  //   						 "\t [" << cells.at(i).coords.x << ", " << cells.at(i).coords.y << "]" << std::endl;
 		}
 	}
 
-	Index Grid::world2grid(const Cell & cell, const double & resolution)
+	Index Grid::world2grid(const Cell & cell, const double & resolution) const
 	{
 		// Get x coordinate
 		int x_index = -1;
@@ -92,12 +95,12 @@ namespace map
 		Index index;
 		index.x = x_index;
 		index.y = y_index;
-		index.row_major = grid2rowmajor(x_index, y_index, static_cast<int>(xcells.size()));
+		index.row_major = grid2rowmajor(index.x, index.y, static_cast<int>(xcells.size()));
 
 		return index;
 	}
 
-	Vector2D Grid::grid2world(const int & i, const int & j, const double & resolution)
+	Vector2D Grid::grid2world(const int & i, const int & j, const double & resolution) const
 	{
 		if (!(i >= 0 and i <= static_cast<int>(xcells.size()) - 1))
 		{
@@ -112,12 +115,12 @@ namespace map
 		return coord;
 	}
 
-	std::vector<Cell> Grid::return_grid()
+	std::vector<Cell> Grid::return_grid() const
 	{
 		return cells;
 	}
 
-	void Grid::occupancy_grid(std::vector<int8_t> & map)
+	void Grid::occupancy_grid(std::vector<int8_t> & map) const
 	{
 		map.resize(cells.size());
 
@@ -137,7 +140,7 @@ namespace map
 		}
 	}
 
-	std::vector<int> Grid::return_grid_dimensions()
+	std::vector<int> Grid::return_grid_dimensions() const
 	{
 		std::vector<int> v;
 		v.push_back(static_cast<int>(xcells.size()));
@@ -145,28 +148,30 @@ namespace map
 		return v;
 	}
 
-	Index rowmajor2grid(const int & rmj, const int & numrow)
+	Index rowmajor2grid(const int & rmj, const int & numcol)
     {
         Index index;
         // NOTE: RViz uses x=col, y=row
-        index.y = rmj / numrow;
-        index.x = rmj - (index.y * numrow);
+        index.y = rmj / numcol;
+        index.x = rmj - (index.y * numcol);
 
         return index;
     }
 
-    int grid2rowmajor(const int & x, const int & y, const int & numrow)
+    int grid2rowmajor(const int & x, const int & y, const int & numcol)
     {
         // NOTE: RViz uses x=col, y=row
+        // So numcol is the number of x squares in each y row so it's x.size()
         // index = y * num_row + x
-        // EX: to get RMJ index 3 we do: 3 = y * num_row + x
+        // EX: to get RMJ index 3 we do: 3 = y * num_col + x
         //                            => 3 = 1 * 3 + 0
         /**
-        Y|(0,2)=6|(1,2)=7|(2,2)=8|
-        Y|(0,1)=3|(1,1)=4|(2,1)=5|
-        Y|(0,0)=0|(1,0)=1|(2,0)=2|
+        Y|(0,3)=9|(1,3)=10|(2,3)=11|
+        Y|(0,2)=6|(1,2)= 7|(2,2)= 8|
+        Y|(0,1)=3|(1,1)= 4|(2,1)= 5|
+        Y|(0,0)=0|(1,0)= 1|(2,0)= 2|
              X      X       X
         **/
-        return x + y * numrow;
+        return x + y * numcol;
     }
 }

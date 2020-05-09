@@ -55,17 +55,19 @@ namespace global
 	    Node goal_node;
 	    // Find PRM vertex whose coordinates most closely match the goal coordinates
 	    goal_node.vertex = find_nearest_node(goal, PRM);
+	    goal_node.id = goal_node.vertex.id;
 
 	    // Add the start node to the queue
 	    Node current_node;
 	    // Find PRM vertex whose coordinates most closely match the start coordinates
 	    current_node.vertex = find_nearest_node(start, PRM);
+	    current_node.id = current_node.vertex.id;
 
 	    open_list.push(current_node);
 
 	    // For re-ordering and finding NOTE: inefficient
 	    std::set<int> open_list_v;
-	    open_list_v.insert(current_node.vertex.id);
+	    open_list_v.insert(current_node.id);
 
 	    // Store the start node
 	    Node start_node = current_node;
@@ -83,7 +85,7 @@ namespace global
 	    	current_node = open_list.top();
 	    	// Remove said node from open list
 	    	open_list.pop();
-	    	open_list_v.erase(current_node.vertex.id);
+	    	open_list_v.erase(current_node.id);
 
 	    	// Add current node ID to closed list
 	    	closed_list.insert(current_node);
@@ -106,9 +108,11 @@ namespace global
 	    		// Find the neighbour node
 	    		Node neighbour;
 	    		neighbour.vertex = PRM.at(edge_iter->next_id);
+	    		// Self-identify
+				neighbour.id = neighbour.vertex.id;
 
 	    		// First, check if in closed list
-	    		skip = closed_list.find(neighbour.vertex.id) != closed_list.end();
+	    		skip = closed_list.find(neighbour.id) != closed_list.end();
 	    		if (skip)
 	    		{
 	    			continue;
@@ -117,7 +121,7 @@ namespace global
 	    		// No obstacle list check since not GRID
 
 	    		// Check if in open list
-	    		opened = open_list_v.find(neighbour.vertex.id) != open_list_v.end();
+	    		opened = open_list_v.find(neighbour.id) != open_list_v.end();
 
 	    		if (!opened)
 	    		// Create a new node and push
@@ -128,7 +132,7 @@ namespace global
 	    			
 	    			create_vtx(open_list, neighbour, current_node);
 	    			// Push to record keeping set
-	    			open_list_v.insert(neighbour.vertex.id);
+	    			open_list_v.insert(neighbour.id);
 
 	    		} else
 	    		// Potentially modify existing node and resort open list
@@ -139,8 +143,8 @@ namespace global
 	    }
 
 	    // If we have reached this point, then there was no valid path
-	    std::cout << "No valid path! returning start node" << std::endl;
-	    return std::vector<Node>{start_node};
+	    std::cout << "No valid path! returning most complete path" << std::endl;
+	    return trace_path(current_node, closed_list);
 
 	}
 
@@ -153,7 +157,7 @@ namespace global
 		neighbour.fcost = neighbour.gcost + neighbour.hcost;
 
 		// Add parent id
-		neighbour.parent_id = current_node.vertex.id;
+		neighbour.parent_id = current_node.id;
 
 		// Push to open list
 		open_list.push(neighbour);
@@ -172,14 +176,14 @@ namespace global
 			// Update f cost
 			neighbour.fcost = neighbour.gcost + neighbour.hcost;
 			// Update parent
-			neighbour.parent_id = current_node.vertex.id;
+			neighbour.parent_id = current_node.id;
 
 			// If this happens, we need to re-sort the open list
 			std::priority_queue <Node, std::vector<Node>, HeapComparator > temp_open_list;
 			while (!open_list.empty())
 			{
 				Node temp = open_list.top();
-				if (temp.vertex.id == neighbour.vertex.id)
+				if (temp.id == neighbour.id)
 				{
 					temp = neighbour;
 				}
@@ -218,9 +222,10 @@ namespace global
 	}
 
 
-	std::vector<Node> Astar::plan(const Vector2D & start, const Vector2D & goal, const std::vector<Cell> & map)
+	std::vector<Node> Astar::plan(const Vector2D & start, const Vector2D & goal, const Grid & grid_, const double & resolution)
 	{
-		GRID = map;
+		Grid grid = grid_;
+		GRID = grid.return_grid();
 
 		/**
 			Main Planning Loop
@@ -257,21 +262,23 @@ namespace global
 	    // Store the goal node
 	    Node goal_node;
 	    // Find GRID cellwhose coordinates most closely match the goal coordinates
-	    goal_node.cell = find_nearest_node(goal, GRID);
+	    goal_node.cell = find_nearest_node(goal, grid, resolution);
+	    goal_node.id = goal_node.cell.index.row_major;
 
 	    // Add the start node to the queue
 	    Node current_node;
 	    // Find GRID cell whose coordinates most closely match the start coordinates
-	    current_node.cell = find_nearest_node(start, GRID);
-	    std::cout << "START IDX: [" << current_node.cell.index.x << ", " << current_node.cell.index.y << "]" << std::endl;
+	    current_node.cell = find_nearest_node(start, grid, resolution);
+	    current_node.id = current_node.cell.index.row_major;
+	    // std::cout << "START IDX: [" << current_node.cell.index.x << ", " << current_node.cell.index.y << "]" << std::endl;
 
-	    std::cout << "GOAL IDX: [" << goal_node.cell.index.x << ", " << goal_node.cell.index.y << "]" << std::endl;
+	    // std::cout << "GOAL IDX: [" << goal_node.cell.index.x << ", " << goal_node.cell.index.y << "]" << std::endl;
 
 	    open_list.push(current_node);
 
 	    // For re-ordering and finding NOTE: inefficient
 	    std::set<int> open_list_v;
-	    open_list_v.insert(current_node.cell.index.row_major);
+	    open_list_v.insert(current_node.id);
 
 	    // Store the start node
 	    Node start_node = current_node;
@@ -285,17 +292,11 @@ namespace global
 	    {
 	    	iterations++;
 
-	    	if (iterations > 10000)
-	    	{
-	    		break;
-	    	}
-	    	std::cout << "Iteration: " << iterations << std::endl;
-
 	    	// Get the minimum node on the open list
 	    	current_node = open_list.top();
 	    	// Remove said node from open list
 	    	open_list.pop();
-	    	open_list_v.erase(current_node.cell.index.row_major);
+	    	open_list_v.erase(current_node.id);
 
 	    	// Add current node ID to closed list
 	    	closed_list.insert(current_node);
@@ -321,33 +322,35 @@ namespace global
 	    		// Find the neighbour node
 	    		Node neighbour;
 	    		neighbour.cell = *nbr_iter;
+	    		neighbour.id = neighbour.cell.index.row_major;
 
 	    		// First, check if in closed list
-	    		skip = closed_list.find(neighbour.cell.index.row_major) != closed_list.end();
+	    		skip = closed_list.find(neighbour.id) != closed_list.end();
 	    		if (skip)
 	    		{
+	    			// std::cout << "CLOSED Node at [" << neighbour.cell.index.x << ", " << neighbour.cell.index.y << "]" << "\t [" << neighbour.cell.coords.x << ", " << neighbour.cell.coords.y << "]" << std::endl;
 	    			continue;
 	    		}
 
 	    		// Now, check if neighbour is an obstacle
-	    		if (GRID.at(neighbour.cell.index.row_major).celltype == map::Occupied or\
-	    			GRID.at(neighbour.cell.index.row_major).celltype == map::Inflation)
-	    		{
+	    		if (neighbour.cell.celltype == map::Occupied or\
+	    			neighbour.cell.celltype == map::Inflation)
+	    		{	    			
 	    			continue;
 	    		}
 
 	    		// Check if in open list
-	    		opened = open_list_v.find(neighbour.cell.index.row_major) != open_list_v.end();
+	    		opened = open_list_v.find(neighbour.id) != open_list_v.end();
 
 	    		if (!opened)
 	    		// Create a new node and push
 	    		{
-	    			// hcost is distance from neighbor to goal using our admissible heuristic
 	    			neighbour.hcost = heuristic(neighbour, goal_node);
+	    			// std::cout << "h cost: " << neighbour.hcost << std::endl;
 	    			
 	    			create_cell(open_list, neighbour, current_node);
 	    			// Push to record keeping set
-	    			open_list_v.insert(neighbour.cell.index.row_major);
+	    			open_list_v.insert(neighbour.id);
 
 	    		} else
 	    		// Potentially modify existing node and resort open list
@@ -358,16 +361,15 @@ namespace global
 	    }
 
 	    // If we have reached this point, then there was no valid path
-	    std::cout << "No valid path! returning start node" << std::endl;
-	    return std::vector<Node>{start_node};
+	    std::cout << "No valid path! returning most complete path" << std::endl;
+	    return trace_path(current_node, closed_list);
 
 	}
 
 	void Astar::update_cell(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node)
 	{
 		// Calculate a new tentative g cost
-		double gcost = current_node.gcost + map::euclidean_distance(neighbour.cell.index.x - current_node.cell.index.x,
-												  					   neighbour.cell.index.y - current_node.cell.index.y);
+		double gcost = current_node.gcost + heuristic(neighbour, current_node);
 		if (gcost < neighbour.gcost)
 		// Modify Node
 		{
@@ -376,14 +378,14 @@ namespace global
 			// Update f cost
 			neighbour.fcost = neighbour.gcost + neighbour.hcost;
 			// Update parent
-			neighbour.parent_id = current_node.cell.index.row_major;
+			neighbour.parent_id = current_node.id;
 
 			// If this happens, we need to re-sort the open list
 			std::priority_queue <Node, std::vector<Node>, HeapComparator > temp_open_list;
 			while (!open_list.empty())
 			{
 				Node temp = open_list.top();
-				if (temp.vertex.id == neighbour.vertex.id)
+				if (temp.id == neighbour.id)
 				{
 					temp = neighbour;
 				}
@@ -399,13 +401,13 @@ namespace global
 	void Astar::create_cell(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node)
 	{
 		// gcost is current node's gcost + distance from neighbor to current node
-		neighbour.gcost = current_node.gcost + map::euclidean_distance(neighbour.cell.index.x - current_node.cell.index.x,
-												  					   neighbour.cell.index.y - current_node.cell.index.y);
+		neighbour.gcost = current_node.gcost + heuristic(neighbour, current_node);
+		// std::cout << "g cost: " << neighbour.gcost << std::endl;
 		// Update f cost
 		neighbour.fcost = neighbour.gcost + neighbour.hcost;
 
 		// Add parent id
-		neighbour.parent_id = current_node.cell.index.row_major;
+		neighbour.parent_id = current_node.id;
 
 		// Push to open list
 		open_list.push(neighbour);
@@ -417,7 +419,7 @@ namespace global
 		double y_dist = fabs(n1.cell.index.y - n2.cell.index.y);
 
 		double D1 = 1.0;
-		double D2 = sqrt(1.0);
+		double D2 = sqrt(2.0);
 
 		return D1 * (x_dist + y_dist) + (D2 - 2 * D1) * std::min(x_dist, y_dist);
 	}
@@ -428,6 +430,7 @@ namespace global
 		int x_max = map.back().index.x;
 		int y_max = map.back().index.y; 
 		std::vector<Cell> neighbours;
+		// std::cout << "Node at [" << n.cell.index.x << ", " << n.cell.index.y << "]" << std::endl;
 
 		// Evaluate about 3x3 block for 8-connectivity
 		for (int x = -1; x < 2; x++)
@@ -447,8 +450,10 @@ namespace global
 					if (check_x >= 0 and check_x <= x_max and check_y >= 0 and check_y <= y_max)
 					{
 						// Now we need to grab the right cell from the map. To do this: index->RMJ
-						int rmj = map::grid2rowmajor(check_x, check_y, y_max);
-						neighbours.push_back(map.at(rmj));
+						// std::cout << "Neighbour at [" << check_x << ", " << check_y << "]" << std::endl;
+						int rmj = map::grid2rowmajor(check_x, check_y, x_max + 1);
+						Cell nbr = map.at(rmj);
+						neighbours.push_back(nbr);
 					}
 				}
 			}
@@ -466,7 +471,7 @@ namespace global
 		if (grandparent_id == -1)
 		{
 			// There is no grandparent since this is the start node
-			grandparent_id = current_node.vertex.id;
+			grandparent_id = current_node.id;
 			clear = false;
 		}
 
@@ -538,7 +543,7 @@ namespace global
 		if (grandparent_id == -1)
 		{
 			// There is no grandparent since this is the start node
-			grandparent_id = current_node.vertex.id;
+			grandparent_id = current_node.id;
 			clear = false;
 		}
 
@@ -604,7 +609,7 @@ namespace global
 				while (!open_list.empty())
 				{
 					Node temp = open_list.top();
-					if (temp.vertex.id == neighbour.vertex.id)
+					if (temp.id == neighbour.id)
 					{
 						temp = neighbour;
 					}
@@ -636,21 +641,12 @@ namespace global
 	}
 
 
-	Cell find_nearest_node(const Vector2D & position, const std::vector<Cell> & map)
+	Cell find_nearest_node(const Vector2D & position, const Grid & grid, const double & resolution)
 	{
-		double min_dist = map::euclidean_distance(position.x - map.at(0).coords.x, position.y - map.at(0).coords.y);
-		int min_idx = 0;
+		Cell temp_cell(position, resolution);
 
-		for (auto iter = map.begin(); iter < map.end(); iter++)
-		{
-			double curr_dist = map::euclidean_distance(position.x - iter->coords.x, position.y - iter->coords.y);
-			if (curr_dist < min_dist)
-			{
-				min_idx = static_cast<int>(std::distance(map.begin(), iter));
-				min_dist = curr_dist;
-			}
-		}
+		Index idx = grid.world2grid(temp_cell, resolution);
 
-		return map.at(min_idx);
+		return (grid.return_grid().at(idx.row_major));
 	}
 }

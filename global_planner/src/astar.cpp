@@ -268,6 +268,55 @@ int main(int argc, char** argv)
         global::Astar astar(obstacles_v, inflate);
         path2 = astar.plan(start, goal, configurations);
       }
+
+      // DRAW PATH
+      int path_marker_id = 0;
+      for (auto path_iter = path.begin(); path_iter != path.end(); path_iter++)
+      {
+          // Add node as marker vertex
+          geometry_msgs::Point vtx;
+          vtx.x = path_iter->vertex.coords.x;
+          vtx.y = path_iter->vertex.coords.y;
+          vtx.z = 0.0;
+          path_marker.points.push_back(vtx);
+
+          // Also push back cylinders
+          path_sph_mkr.pose.position.x = path_iter->vertex.coords.x;
+          path_sph_mkr.pose.position.y = path_iter->vertex.coords.y;
+          path_sph_mkr.id = path_marker_id;
+          path_marker_id++;
+          path_arr.markers.push_back(path_sph_mkr);
+
+      }
+      path_marker.id = path_marker_id;
+      path_arr.markers.push_back(path_marker);
+
+      // DRAW DEBUG PATH
+      path_marker_id = 0;
+      path_marker.points.clear();
+      path_marker.color.r = 1.0;
+      path_marker.color.g = 0.2;
+      path_marker.color.b = 0.2;
+      for (auto path2_iter = path2.begin(); path2_iter != path2.end(); path2_iter++)
+      {
+          // Add node as marker vertex
+          geometry_msgs::Point vtx;
+          vtx.x = path2_iter->vertex.coords.x;
+          vtx.y = path2_iter->vertex.coords.y;
+          vtx.z = 0.0;
+          path_marker.points.push_back(vtx);
+
+          // Also push back cylinders
+          path_sph_mkr.pose.position.x = path2_iter->vertex.coords.x;
+          path_sph_mkr.pose.position.y = path2_iter->vertex.coords.y;
+          path_sph_mkr.id = path_marker_id;
+          path_marker_id++;
+          path_debug.markers.push_back(path_sph_mkr);
+
+      }
+      path_marker.id = path_marker_id;
+      path_debug.markers.push_back(path_marker);
+
     } else
     // GRID Version
     {
@@ -302,61 +351,65 @@ int main(int argc, char** argv)
       grid_map.info.width = gridsize.at(0);
       grid_map.info.height = gridsize.at(1);
 
+      // std::cout << "Width: " << gridsize.at(0) << "\t Height: " << gridsize.at(1) << std::endl;
+
       grid_map.info.origin = map_pose;
 
       ROS_INFO("Planning using A*!");
       global::Astar astar(obstacles_v, inflate);
-      path = astar.plan(start, goal, grid.return_grid());
+      path = astar.plan(start, goal, grid, resolution);
+      path2 = path;
+
+
+      // DRAW PATH
+      int path_marker_id = 0;
+      for (auto path_iter = path.begin(); path_iter != path.end(); path_iter++)
+      {
+          // Add node as marker cell
+          geometry_msgs::Point vtx;
+          vtx.x = path_iter->cell.coords.x;
+          vtx.y = path_iter->cell.coords.y;
+          vtx.z = 0.0;
+          path_marker.points.push_back(vtx);
+
+          // Also push back cylinders
+          path_sph_mkr.pose.position.x = path_iter->cell.coords.x;
+          path_sph_mkr.pose.position.y = path_iter->cell.coords.y;
+          path_sph_mkr.id = path_marker_id;
+          path_marker_id++;
+          path_arr.markers.push_back(path_sph_mkr);
+
+      }
+      path_marker.id = path_marker_id;
+      path_arr.markers.push_back(path_marker);
+
+      // DRAW DEBUG PATH
+      path_marker_id = 0;
+      path_marker.points.clear();
+      path_marker.color.r = 1.0;
+      path_marker.color.g = 0.2;
+      path_marker.color.b = 0.2;
+      for (auto path2_iter = path2.begin(); path2_iter != path2.end(); path2_iter++)
+      {
+          // Add node as marker cell
+          geometry_msgs::Point vtx;
+          vtx.x = path2_iter->cell.coords.x;
+          vtx.y = path2_iter->cell.coords.y;
+          vtx.z = 0.0;
+          path_marker.points.push_back(vtx);
+
+          // Also push back cylinders
+          path_sph_mkr.pose.position.x = path2_iter->cell.coords.x;
+          path_sph_mkr.pose.position.y = path2_iter->cell.coords.y;
+          path_sph_mkr.id = path_marker_id;
+          path_marker_id++;
+          path_debug.markers.push_back(path_sph_mkr);
+
+      }
+      path_marker.id = path_marker_id;
+      path_debug.markers.push_back(path_marker);
 
     }
-
-    // DRAW PATH
-    int path_marker_id = 0;
-    for (auto path_iter = path.begin(); path_iter != path.end(); path_iter++)
-    {
-        // Add node as marker vertex
-        geometry_msgs::Point vtx;
-        vtx.x = path_iter->vertex.coords.x;
-        vtx.y = path_iter->vertex.coords.y;
-        vtx.z = 0.0;
-        path_marker.points.push_back(vtx);
-
-        // Also push back cylinders
-        path_sph_mkr.pose.position.x = path_iter->vertex.coords.x;
-        path_sph_mkr.pose.position.y = path_iter->vertex.coords.y;
-        path_sph_mkr.id = path_marker_id;
-        path_marker_id++;
-        path_arr.markers.push_back(path_sph_mkr);
-
-    }
-    path_marker.id = path_marker_id;
-    path_arr.markers.push_back(path_marker);
-
-    // DRAW DEBUG PATH
-    path_marker_id = 0;
-    path_marker.points.clear();
-    path_marker.color.r = 1.0;
-    path_marker.color.g = 0.2;
-    path_marker.color.b = 0.2;
-    for (auto path2_iter = path2.begin(); path2_iter != path2.end(); path2_iter++)
-    {
-        // Add node as marker vertex
-        geometry_msgs::Point vtx;
-        vtx.x = path2_iter->vertex.coords.x;
-        vtx.y = path2_iter->vertex.coords.y;
-        vtx.z = 0.0;
-        path_marker.points.push_back(vtx);
-
-        // Also push back cylinders
-        path_sph_mkr.pose.position.x = path2_iter->vertex.coords.x;
-        path_sph_mkr.pose.position.y = path2_iter->vertex.coords.y;
-        path_sph_mkr.id = path_marker_id;
-        path_marker_id++;
-        path_debug.markers.push_back(path_sph_mkr);
-
-    }
-    path_marker.id = path_marker_id;
-    path_debug.markers.push_back(path_marker);
 
     ros::Rate rate(frequency);
 

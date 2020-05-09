@@ -104,17 +104,17 @@ namespace map
     }
 
     // \brief convert from row-major-order coordinates to grid coordinates
-    // \param i: row-major-order coordinate
+    // \param rmj: row-major-order coordinate
     // \param numrow: number of rows in grid
     // \returns Index containing grid coordintates
-    Index rowmajor2grid(const int & i, const int & numrow);
+    Index rowmajor2grid(const int & rmj, const int & numrow);
 
     // \brief convert from grid coordinates to row-major-order coordinates
-    // \param i: x-coordinate of grid cell
-    // \param j: y-coordinate of grid cell
+    // \param x: x-coordinate of grid cell
+    // \param y: y-coordinate of grid cell
     // \param numcol: number of columns in grid
     // \returns row-major-order index
-    int grid2rowmajor(const int & i, const int & j, const int & numcol);
+    int grid2rowmajor(const int & x, const int & y, const int & numrow);
 }
 
 #endif

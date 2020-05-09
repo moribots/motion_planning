@@ -19,23 +19,14 @@ namespace map
 		xcells = arange<double>(map_min.x, map_max.x, resolution);
 		ycells = arange<double>(map_min.y, map_max.y, resolution);
 
-		// Diagonal length of one cell
-		// double offset = euclidean_distance(resolution, resolution);
-
-		// std::cout << "OFFSET: " << offset << std::endl;
-
-		// std::cout << "Grid decomposed!" << std::endl;
-
-		// std::cout << "# x cells: " << xcells.size() << std::endl;
-		// std::cout << "# y cells: " << ycells.size() << std::endl;
-
 		// Step 2. Populate Cell vector (cells) with world coordinates and labels in row-major-order
-		for (int i = 0; i < static_cast<int>(xcells.size()); i++)
+		for (int i = 0; i < static_cast<int>(ycells.size()); i++)
 		{
-			for (int j = 0; j < static_cast<int>(ycells.size()); j++)
+			for (int j = 0; j < static_cast<int>(xcells.size()); j++)
 			{
+				// std::cout << "[" << j << ", " << i << "]" << std::endl;
 				// For each cell to be added, convert the grid index to world coords
-				Cell cell(Vector2D(xcells.at(i), ycells.at(j)), resolution);
+				Cell cell(Vector2D(xcells.at(j), ycells.at(i)), resolution);
 
 				// Perform inside-obstacle check for labeling Obstacle
 				if (!not_inside(Vertex(cell.center_coords), obstacles, 0.0))
@@ -117,8 +108,14 @@ namespace map
 			// Convert from row-major-order to grid coordinates
 			auto index = rowmajor2grid(i, static_cast<int>(ycells.size()));
 			// Convert back to rmj
-			int rmj = grid2rowmajor(index.x, index.y, static_cast<int>(xcells.size()));
+			int rmj = grid2rowmajor(index.x, index.y, static_cast<int>(ycells.size()));
 			index.row_major = rmj;
+
+			if (!(rmj == static_cast<int>(i)))
+			{
+				throw std::runtime_error("Row-Major Order Conversion Failed!\
+										 \n  where(): Grid::occupancy_grid(std::vector<int8_t> & map)");
+			}
 
 			cells.at(i).index = index;
 
@@ -144,28 +141,28 @@ namespace map
 		return v;
 	}
 
-	Index rowmajor2grid(const int & i, const int & numrow)
+	Index rowmajor2grid(const int & rmj, const int & numrow)
     {
         Index index;
         // NOTE: RViz uses x=col, y=row
-        index.x = i / numrow;
-        index.y = i % numrow;
+        index.y = rmj / numrow;
+        index.x = rmj - (index.y * numrow);
 
         return index;
     }
 
-    int grid2rowmajor(const int & i, const int & j, const int & numcol)
+    int grid2rowmajor(const int & x, const int & y, const int & numrow)
     {
         // NOTE: RViz uses x=col, y=row
-        // index = y * num_xcols + x
-        // EX: to get RMJ index 3 we do: 3 = y * num_xcols + x
-        //                            => 3 = 1 + 3 + 0
+        // index = y * num_row + x
+        // EX: to get RMJ index 3 we do: 3 = y * num_row + x
+        //                            => 3 = 1 * 3 + 0
         /**
         Y|(0,2)=6|(1,2)=7|(2,2)=8|
         Y|(0,1)=3|(1,1)=4|(2,1)=5|
         Y|(0,0)=0|(1,0)=1|(2,0)=2|
              X      X       X
         **/
-        return j * numcol + i;
+        return x + y * numrow;
     }
 }

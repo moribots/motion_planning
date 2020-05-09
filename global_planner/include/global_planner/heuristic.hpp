@@ -88,6 +88,18 @@ namespace global
         // \param map: the Grid Map
         // \returns: the path as a vector of Nodes
         std::vector<Node> plan(const Vector2D & start, const Vector2D & goal, const std::vector<Cell> & map);
+
+        // \brief Computes the heuristic to the goal using a custom admissible heuristic optimized for 8-point connectivity
+        // NOTE: distance between nodes is simply computed using euclidean distance
+        // \param n1: start Node for heuristic
+        // \param n2: end Node for heuristic
+        // \returns the grid distance
+        double heuristic(const Node & n1, const Node & n2);
+
+        // \brief retrieves the 8 neighbours of a node in a grid
+        // \param n: Node whose neighbours to retrieve
+        // \returns: vector of Nodes that are n's neighbours
+        std::vector<Node> get_neighbours(const Node & n, const std::vector<Cell> & map);
     };
 
     /// \brief Theta* Planner

@@ -217,6 +217,54 @@ namespace global
 		return path;
 	}
 
+
+	double Astar::heuristic(const Node & n1, const Node & n2)
+	{
+		double x_dist = fabs(n1.cell.index.x - n2.cell.index.x);
+		double y_dist = fabs(n1.cell.index.y - n2.cell.index.y);
+
+		double D1 = 1.0;
+		double D2 = sqrt(1.0);
+
+		return D1 * (x_dist + y_dist) + (D2 - 2 * D1) * std::min(x_dist, y_dist);
+	}
+
+
+	std::vector<Node> Astar::get_neighbours(const Node & n, const std::vector<Cell> & map)
+	{
+		int x_max = map.back().index.x;
+		int y_max = map.back().index.y; 
+		std::vector<Node> neighbours;
+		// Evaluate about 3x3 block
+		for (int x = -1; x < 2; x++)
+		{
+			for (int y = -1; y < 2; y++)
+			{
+				// Skip x,y = (0,0) since that's the current node
+				if (x == 0 and y == 0)
+				{
+					continue;
+				} else
+				{
+					int check_x = n.cell.index.x + x;
+					int check_y = n.cell.index.y + y;
+
+					// Ensure potential neighbour is within grid bounds
+					if (check_x >= 0 and check_x <= x_max and check_y >= 0 and check_y <= y_max)
+					{
+						// Now we need to grab the right cell from the map.
+
+
+					}
+				}
+			}
+		}
+
+		return neighbours;
+
+	}
+
+
 	void Thetastar::create_node(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node)
 	{
 		// First, do line of sight check between PARENT of current node and neighbour

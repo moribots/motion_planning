@@ -235,6 +235,7 @@ namespace global
 		int x_max = map.back().index.x;
 		int y_max = map.back().index.y; 
 		std::vector<Node> neighbours;
+
 		// Evaluate about 3x3 block
 		for (int x = -1; x < 2; x++)
 		{
@@ -252,16 +253,16 @@ namespace global
 					// Ensure potential neighbour is within grid bounds
 					if (check_x >= 0 and check_x <= x_max and check_y >= 0 and check_y <= y_max)
 					{
-						// Now we need to grab the right cell from the map.
-
-
+						// Now we need to grab the right cell from the map. To do this: index->RMJ
+						int rmj = map::grid2rowmajor(check_x, check_y, y_max);
+						Node node;
+						node.cell = map.at(rmj);
+						neighbours.push_back(node);
 					}
 				}
 			}
 		}
-
 		return neighbours;
-
 	}
 
 

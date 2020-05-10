@@ -69,6 +69,14 @@ namespace global
         // \param n: the node whose keys we calculate
         void CalculateKeys(Node & n);
 
+        // \brief Termination condition for ComputeShortestPath method.
+        bool Continue();
+
+        // \brief retrieves the 8 neighbours of a node in a grid of Nodes
+        // \param n: Node whose neighbours to retrieve
+        // \returns: vector of Nodes that are n's neighbours
+        std::vector<Node> get_neighbours(const Node & n, const std::vector<Node> & map);
+
         // \brief returns the most current path
         // \returns: vector of Node
         std::vector<Node> return_path();

@@ -4,13 +4,42 @@ namespace global
 {
 	void LPAstar::ComputeShortestPath(const Vector2D & start, const Vector2D & goal, const map::Grid & grid_, const double & resolution)
 	{
+		Node min = start_node;
 		int iterations= 0;
-		while (Continue())
+		while (Continue(iterations))
 		{
 			iterations++;
 
-		}
+			min = open_list.top();
+			open_list.pop();
+			open_list_v.erase(min.id);
 
+			// Check if Overconsistent
+			if (min.gcost > min.rhs)
+			{
+				// Update True Cost
+				min.gcost = min.rhs;
+				// Check Successors
+				std::vector<Node> successors = get_neighbours(min, FakeGrid);
+				for (auto succ = successors.begin(); succ < successors.end(); succ++)
+				{
+					UpdateCell(*succ);
+				}
+
+			} else
+			{
+				min.gcost = 1e12;
+				// Check Successors
+				std::vector<Node> successors = get_neighbours(min, FakeGrid);
+				// ALSO check min itself
+				successors.push_back(min);
+				for (auto succ = successors.begin(); succ < successors.end(); succ++)
+				{
+					UpdateCell(*succ);
+				}
+			}
+		}
+		path = trace_path(min);
 	}
 
 
@@ -131,7 +160,7 @@ namespace global
 	}
 
 
-	bool LPAstar::Continue()
+	bool LPAstar::Continue(const int & iterations)
 	{
 		Node top = open_list.top();
 		CalculateKeys(goal_node);
@@ -152,8 +181,34 @@ namespace global
 			return true;
 		} else
 		{
+			std::cout << "Goal found after " << iterations << " Iterations!" << std::endl;
 			return false;
 		}
+	}
+
+	std::vector<Node> LPAstar::trace_path(const Node & final_node)
+	{
+		// First node in the vector is 'final node'
+		std::vector<Node> path{final_node};
+
+		bool done = false;
+
+		while (!done)
+		{
+			// std::cout << "GOING FROM NODE: " << path.back().vertex.id << " TO: " << path.back().parent_id << std::endl;
+			Node next_node = FakeGrid.at(path.back().parent_id);
+			path.push_back(next_node);
+			if (next_node.parent_id == -1)
+			{
+				done = true;
+				break;
+			}
+		}
+
+		std::reverse(path.begin(), path.end());
+
+		std::cout << "The path contains " << path.size() << " Nodes." << std::endl;
+		return path;
 	}
 
 

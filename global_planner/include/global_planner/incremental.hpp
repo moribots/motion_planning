@@ -70,7 +70,10 @@ namespace global
         void CalculateKeys(Node & n);
 
         // \brief Termination condition for ComputeShortestPath method.
-        bool Continue();
+        bool Continue(const int & iterations);
+
+        // \brief traces the most up-to-date path
+        std::vector<Node> trace_path(const Node & final_node);
 
         // \brief retrieves the 8 neighbours of a node in a grid of Nodes
         // \param n: Node whose neighbours to retrieve
@@ -94,6 +97,9 @@ namespace global
         // For easy management/record keeping
         Node start_node;
         Node goal_node;
+
+        // For tracing most up-to-date path
+        Node top_node;
 
         // Number of visible cells added per increment
         int viz_cells = 1;

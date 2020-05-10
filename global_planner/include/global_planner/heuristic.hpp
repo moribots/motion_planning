@@ -89,7 +89,7 @@ namespace global
         // \param neighbour: Node to be added to open list (also not const)
         virtual void create_vtx(std::priority_queue <Node, std::vector<Node>, HeapComparator > & open_list, Node & neighbour, const Node & current_node);
 
-        // \brief returns the path planned on the PRM
+        // \brief returns the path planned on the PRM or GRID
         // \param closed_list: Nodes to traverse
         std::vector<Node> trace_path(const Node & final_node, const std::set<Node, std::less<>> & closed_list);
 

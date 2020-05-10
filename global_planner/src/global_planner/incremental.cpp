@@ -11,20 +11,20 @@ namespace global
 			iterations++;
 			// std::cout << "Iteration: " << iterations << std::endl;
 
-			if (iterations > 10000)
-			{
-				break;
-			}
+			// if (iterations > 10000)
+			// {
+			// 	break;
+			// }
 
 			min = open_list.top();
 			open_list.pop();
 			open_list_v.erase(min.id);
-			std::cout << "MIN, IDX: [" << min.cell.index.x << ", " << min.cell.index.y << "]"<< std::endl;
+			// std::cout << "MIN, IDX: [" << min.cell.index.x << ", " << min.cell.index.y << "]"<< std::endl;
 
 			// Check if Overconsistent (start always satisfies this)
 			if (min.gcost > min.rhs)
 			{
-				std::cout << "Locally Overconsistent!" << std::endl;
+				// std::cout << "Locally Overconsistent!" << std::endl;
 				// Update True Cost
 				min.gcost = min.rhs;
 				// Update min in FakeGrid
@@ -38,7 +38,7 @@ namespace global
 
 			} else
 			{
-				std::cout << "NOT Locally Overconsistent!" << std::endl;
+				// std::cout << "NOT Locally Overconsistent!" << std::endl;
 				min.gcost = 1e12;
 				// Check Successors
 				std::vector<Node> successors = get_neighbours(min, FakeGrid);
@@ -49,7 +49,7 @@ namespace global
 					UpdateCell(*succ);
 				}
 			}
-			std::cout << "--------------------" << std::endl;
+			// std::cout << "--------------------" << std::endl;
 		}
 		path = trace_path(min);
 	}
@@ -84,7 +84,7 @@ namespace global
 		    		{
 		    			// Push to priority queue for auto sort
 		    			// This is not actually stored anywhere, just useful in getting min gcost for n
-		    			predecessor.gcost += heuristic(predecessor, n);
+		    			predecessor.gcost += 1.0;
 		    			pred_costs.push(predecessor);
 		    		}
 
@@ -102,7 +102,7 @@ namespace global
 	    	open_list_v.erase(n.id);
 	    	if (opened)
 	    	{
-	    		std::cout << "Erase, IDX: [" << n.cell.index.x << ", " << n.cell.index.y << "]"<< std::endl;
+	    		// std::cout << "Erase, IDX: [" << n.cell.index.x << ", " << n.cell.index.y << "]"<< std::endl;
 	    		std::priority_queue <Node, std::vector<Node>, KeyComparator > temp_open_list;
 				while (!open_list.empty())
 				{
@@ -121,7 +121,8 @@ namespace global
 	    	// If n is locally inconsistent (ie if n.gcost != n.rhs), add it to the open list with updated keys
 	    	if (!(rigid2d::almost_equal(n.gcost, n.rhs)))
 	    	{
-	    		std::cout << "Push, IDX: [" << n.cell.index.x << ", " << n.cell.index.y << "]"<< std::endl;
+	    		// std::cout << "Push, IDX: [" << n.cell.index.x << ", " << n.cell.index.y << "]"<< std::endl;
+	    		n.hcost = heuristic(n, goal_node);
 	    		CalculateKeys(n);
 	    		open_list.push(n);
 	    		open_list_v.insert(n.id);
@@ -141,6 +142,7 @@ namespace global
 		// Find Start and Goal Nodes
 	    goal_node.cell = find_nearest_node(goal, grid_, resolution);
 	    goal_node.id = goal_node.cell.index.row_major;
+	    goal_node.hcost = 0.0;
 	    CalculateKeys(goal_node);
 
 	    // Find GRID cell whose coordinates most closely match the start coordinates
@@ -187,6 +189,9 @@ namespace global
 	bool LPAstar::Continue(const int & iterations)
 	{
 		Node top = open_list.top();
+		// Update Goal Node from Fake Grid
+		goal_node = FakeGrid.at(goal_node.id);
+		goal_node.hcost = 0.0;
 		CalculateKeys(goal_node);
 
 		// Put top and goal_node in a priority queue to see which has the smallest key
@@ -195,12 +200,8 @@ namespace global
 		check.push(top);
 		check.push(goal_node);
 
-		// FIRST condition
-		if (check.top().id != goal_node.id)
-		{
-			return true;
-		} else if (goal_node.rhs != goal_node.gcost)
-		// SECOND condition
+		// Conditions for Continuing
+		if ((check.top().id != goal_node.id) or (!(rigid2d::almost_equal(goal_node.rhs, goal_node.gcost))))
 		{
 			return true;
 		} else

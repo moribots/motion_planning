@@ -43,7 +43,7 @@
     <param name="thresh" value="0.1"/>
     <param name="inflate" value="0.1"/>
     <param name="scale" value="10.0"/>
-    <param name="resolution" value="0.1"/>
+    <param name="resolution" value="0.03"/>
   </node>
 
 </launch>

@@ -51,11 +51,8 @@ namespace global
         // NOTE: The method names below directly reference the LPA* pseudocode: http://idm-lab.org/bib/abstracts/papers/aaai02b.pdf
 
         // \brief Plans an incremental path on a Grid.
-        // \param start: the starting coordinates
-        // \param goal: the goal coordinates
-        // \param map: the (fake) Grid Map with limited visibility
         // \returns: the path as a vector of Nodes
-        virtual void ComputeShortestPath(const Vector2D & start, const Vector2D & goal, const map::Grid & grid_, const double & resolution);
+        virtual void ComputeShortestPath();
 
         // Update the cost of a cell and remove it from the open list if it's there
         void UpdateCell(Node & n);

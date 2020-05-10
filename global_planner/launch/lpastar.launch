@@ -1,0 +1,49 @@
+<launch>
+  <!-- This launchfile loads a differential drive robot into RViz, whose parameters are set
+       and can be modified in diff_params.yaml
+
+       It also loads the custom map -->
+
+  <!-- load the urdf into the parameter server from the xacro file-->
+  <param name="robot_description" command="xacro '$(find nuturtle_gazebo)/urdf/diff_drive.gazebo.xacro'" />
+
+
+  <!-- The robot_state_publisher reads the urdf from /robot_description parameter
+       and listens to joint information on the /joint_states topic -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+  <!-- The joint state publisher will be launched with a gui, read the urdf from /robot_description
+       and publish the joint values on /joint_states. Optional launch using use_jsp_gui:=1 --> 
+  <arg name="js_pub" default="True" doc="Launch the joint_state_publisher"/>
+  <group if="$(arg js_pub)">
+    <arg name="use_jsp_gui" default="False" doc="Launch the joint_state_publisher GUI to publish joint angles manually"/>
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+      <param name="use_gui" value="$(eval use_jsp_gui)" />
+    </node>
+  </group>
+
+  <!-- load diff_drive_bot parameters to parameter server -->
+  <rosparam command="load" file="$(find nuturtle_description)/config/diff_params.yaml" />
+
+  <arg name="rviz_view" default="$(find global_planner)/rviz/astar.rviz"/>
+
+  <node name="rviz" pkg="rviz" type="rviz" required="True" args="-d $(arg rviz_view)"/>
+
+
+  <!-- Map Visualizer Node -->
+  <node name="viz_map" pkg="map" type="viz_map" output="screen">
+    <rosparam command="load" file="$(find map)/config/map.yaml"/>
+    <param name="scale" value="10.0"/>
+  </node>
+
+  <!-- Grid with LPA* Node -->
+  <node name="lpastar" pkg="global_planner" type="lpastar" output="screen">
+    <rosparam command="load" file="$(find map)/config/map.yaml"/>
+    <rosparam command="load" file="$(find global_planner)/config/path.yaml"/>
+    <param name="thresh" value="0.1"/>
+    <param name="inflate" value="0.1"/>
+    <param name="scale" value="10.0"/>
+    <param name="resolution" value="0.1"/>
+  </node>
+
+</launch>

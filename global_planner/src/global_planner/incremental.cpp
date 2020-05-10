@@ -2,23 +2,33 @@
 
 namespace global
 {
-	void LPAstar::ComputeShortestPath(const Vector2D & start, const Vector2D & goal, const map::Grid & grid_, const double & resolution)
+	void LPAstar::ComputeShortestPath()
 	{
 		Node min = start_node;
 		int iterations= 0;
 		while (Continue(iterations))
 		{
 			iterations++;
+			// std::cout << "Iteration: " << iterations << std::endl;
+
+			if (iterations > 10000)
+			{
+				break;
+			}
 
 			min = open_list.top();
 			open_list.pop();
 			open_list_v.erase(min.id);
+			std::cout << "MIN, IDX: [" << min.cell.index.x << ", " << min.cell.index.y << "]"<< std::endl;
 
-			// Check if Overconsistent
+			// Check if Overconsistent (start always satisfies this)
 			if (min.gcost > min.rhs)
 			{
+				std::cout << "Locally Overconsistent!" << std::endl;
 				// Update True Cost
 				min.gcost = min.rhs;
+				// Update min in FakeGrid
+				FakeGrid.at(min.id) = min;
 				// Check Successors
 				std::vector<Node> successors = get_neighbours(min, FakeGrid);
 				for (auto succ = successors.begin(); succ < successors.end(); succ++)
@@ -28,6 +38,7 @@ namespace global
 
 			} else
 			{
+				std::cout << "NOT Locally Overconsistent!" << std::endl;
 				min.gcost = 1e12;
 				// Check Successors
 				std::vector<Node> successors = get_neighbours(min, FakeGrid);
@@ -38,6 +49,7 @@ namespace global
 					UpdateCell(*succ);
 				}
 			}
+			std::cout << "--------------------" << std::endl;
 		}
 		path = trace_path(min);
 	}
@@ -45,47 +57,52 @@ namespace global
 
 	void LPAstar::UpdateCell(Node & n)
 	{
-		// Check this node isn't the start node
-		if (n.id != start_node.id)
-		{
-			std::priority_queue <Node, std::vector<Node>, CostComparator > pred_costs;
-			// Find the predecessors of node n
-			std::vector<Node> predecessors = get_neighbours(n, FakeGrid);
+		if (!(n.cell.celltype == map::Occupied or\
+	    	  n.cell.celltype == map::Inflation))
+	    {
+	    	// Check this node isn't the start node
+			if (n.id != start_node.id)
+			{
+				std::priority_queue <Node, std::vector<Node>, CostComparator > pred_costs;
+				// Find the predecessors of node n
+				std::vector<Node> predecessors = get_neighbours(n, FakeGrid);
 
-			for (auto pred_iter = predecessors.begin(); pred_iter < predecessors.end(); pred_iter++)
-	    	{
-	    		// Find the neighbour node
-	    		Node predecessor;
-	    		predecessor = *pred_iter;
-	    		predecessor.id = predecessor.cell.index.row_major;
+				for (auto pred_iter = predecessors.begin(); pred_iter < predecessors.end(); pred_iter++)
+		    	{
+		    		// Find the neighbour node
+		    		Node predecessor;
+		    		predecessor = *pred_iter;
+		    		predecessor.id = predecessor.cell.index.row_major;
 
-	    		// Skip Occupied or Inflated Cells
-	    		if (predecessor.cell.celltype == map::Occupied or\
-	    			predecessor.cell.celltype == map::Inflation)
-	    		{	    			
-	    			continue;
-	    		} else
-	    		// Free Cells
-	    		{
-	    			// Push to priority queue for auto sort
-	    			pred_costs.push(predecessor);
-	    		}
+		    		// Skip Occupied or Inflated Cells
+		    		if (predecessor.cell.celltype == map::Occupied or\
+		    			predecessor.cell.celltype == map::Inflation)
+		    		{	    			
+		    			continue;
+		    		} else
+		    		// Free Cells
+		    		{
+		    			// Push to priority queue for auto sort
+		    			// This is not actually stored anywhere, just useful in getting min gcost for n
+		    			predecessor.gcost += heuristic(predecessor, n);
+		    			pred_costs.push(predecessor);
+		    		}
 
-	    	}
+		    	}
 
-	    	Node min_predecessor = pred_costs.top();
+		    	Node min_predecessor = pred_costs.top();
 
-	    	// Update RHS value
-	    	n.rhs = min_predecessor.gcost;
-	    	// Update Parent
-	    	n.parent_id = min_predecessor.id;
-
-
+		    	// Update RHS value
+		    	n.rhs = min_predecessor.gcost;
+		    	// Update Parent
+		    	n.parent_id = min_predecessor.id;
+		    }
 	    	// If it's on the open list, remove it
 	    	bool opened = open_list_v.find(n.id) != open_list_v.end();
 	    	open_list_v.erase(n.id);
 	    	if (opened)
 	    	{
+	    		std::cout << "Erase, IDX: [" << n.cell.index.x << ", " << n.cell.index.y << "]"<< std::endl;
 	    		std::priority_queue <Node, std::vector<Node>, KeyComparator > temp_open_list;
 				while (!open_list.empty())
 				{
@@ -104,11 +121,15 @@ namespace global
 	    	// If n is locally inconsistent (ie if n.gcost != n.rhs), add it to the open list with updated keys
 	    	if (!(rigid2d::almost_equal(n.gcost, n.rhs)))
 	    	{
+	    		std::cout << "Push, IDX: [" << n.cell.index.x << ", " << n.cell.index.y << "]"<< std::endl;
 	    		CalculateKeys(n);
 	    		open_list.push(n);
+	    		open_list_v.insert(n.id);
 	    	}
-		}
 
+	    	// Update n in FakeGrid
+	    	FakeGrid.at(n.id) = n;
+	    }
 	}
 
 
@@ -150,11 +171,14 @@ namespace global
 		// Populate Open List
 		open_list.push(start_node);
 		open_list_v.insert(start_node.id);
+
+		std::cout << "Initialized!" << std::endl;
 	}
 
 
 	void LPAstar::CalculateKeys(Node & n)
 	{
+		n.hcost = heuristic(n, goal_node);
 		n.key1 = std::min(n.gcost, n.rhs + n.hcost);
 		n.key2 = std::min(n.gcost, n.rhs);
 	}
@@ -240,6 +264,7 @@ namespace global
 						// std::cout << "Neighbour at [" << check_x << ", " << check_y << "]" << std::endl;
 						int rmj = map::grid2rowmajor(check_x, check_y, x_max + 1);
 						Node nbr = map.at(rmj);
+						// std::cout << "Checked Neighbour at [" << nbr.cell.index.x << ", " << nbr.cell.index.y << "]" << std::endl;
 						neighbours.push_back(nbr);
 					}
 				}

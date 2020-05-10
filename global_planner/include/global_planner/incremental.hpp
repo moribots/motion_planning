@@ -30,6 +30,17 @@ namespace global
         } 
     }; 
 
+
+    // \brief functor (function object) which compares the costs of the predecessor of a Node
+    class CostComparator
+    { 
+    public: 
+        int operator() (const Node& n1, const Node& n2) 
+        { 
+            return n1.gcost > n2.gcost;
+        } 
+    }; 
+
     /// \brief LPA* Planner
     class LPAstar : public Astar
     {
@@ -42,18 +53,17 @@ namespace global
         // \brief Plans an incremental path on a Grid.
         // \param start: the starting coordinates
         // \param goal: the goal coordinates
-        // \param map: the Grid Map
+        // \param map: the (fake) Grid Map with limited visibility
         // \returns: the path as a vector of Nodes
         virtual void ComputeShortestPath(const Vector2D & start, const Vector2D & goal, const map::Grid & grid_, const double & resolution);
 
         // Update the cost of a cell and remove it from the open list if it's there
-        void UpdateCell(const Node & n, std::priority_queue <Node, std::vector<Node>, KeyComparator > & open_list, std::set<int> & open_list_v);
+        void UpdateCell(Node & n);
 
         // \brief sets the g-values of all cells (start and goal for efficiency) to infinity and sets their rhs values according to eqn 1.
         // Also inserts start (locally inconsistent vertex) into the (otherwise empty) priority queue.
         // This guarantees that the first run of ComputeShortestPath performs an exact A* search.
-        void Initialize(const Vector2D & start, const Vector2D & goal, std::priority_queue <Node, std::vector<Node>, KeyComparator > & open_list,
-                        std::set<int> & open_list_v);
+        void Initialize(const Vector2D & start, const Vector2D & goal, const Grid & grid_, const double & resolution);
 
         // Calculates priorities 1 and 2 of a node, used in sorting for LPA*
         // \param n: the node whose keys we calculate
@@ -65,6 +75,20 @@ namespace global
 
     private:
         std::vector<Node> path;
+        // Fake grid with limited visibility for simulating increment
+        std::vector<Node> FakeGrid;
+
+        // Open list used for finding existing IDs
+        std::set<int> open_list_v;
+        // Open List
+        std::priority_queue <Node, std::vector<Node>, KeyComparator > open_list;
+
+        // For easy management/record keeping
+        Node start_node;
+        Node goal_node;
+
+        // Number of visible cells added per increment
+        int viz_cells = 1;
     };
 }
 

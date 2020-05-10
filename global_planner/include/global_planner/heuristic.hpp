@@ -44,6 +44,7 @@ namespace global
     };
 
     // Bolean operator so that std::find can be used with struct sub-element in closed list
+    // inline so as to not confuse linker with multiple definitions
     inline bool operator<(const Node & n, const int & id) { return n.id < id; }
     inline bool operator<(const int & id, const Node & n) { return id < n.id; }
     inline bool operator<(const Node & n1, const Node & n2) { return n1.id < n2.id; }

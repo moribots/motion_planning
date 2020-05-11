@@ -11,6 +11,7 @@ namespace map
 		double offset = euclidean_distance(resolution_, resolution_) / 2.0;
 
 		center_coords = Vector2D(coords.x + offset, coords.y + offset);
+		resolution = resolution_;
 	}
 
 	void Grid::build_map(const double & resolution)
@@ -60,18 +61,20 @@ namespace map
 
 			cells.at(i).index = index;
 
-			// std::cout << "Node at [" << cells.at(i).index.x << ", " << cells.at(i).index.y << "]" << \
-	  //   						 "\t [" << cells.at(i).coords.x << ", " << cells.at(i).coords.y << "]" << std::endl;
+			// Set fake_grid to same cells but all free
+			Cell fake_cell = cells.at(i);
+			fake_cell.celltype = Free;
+			fake_grid.push_back(fake_cell);
 		}
 	}
 
-	Index Grid::world2grid(const Cell & cell, const double & resolution) const
+	Index Grid::world2grid(const Cell & cell) const
 	{
 		// Get x coordinate
 		int x_index = -1;
 		for (int i = 0; i < static_cast<int>(xcells.size()); i++)
 		{
-			if (cell.coords.x >= xcells.at(i) and cell.coords.x < xcells.at(i) + resolution)
+			if (cell.coords.x >= xcells.at(i) and cell.coords.x < xcells.at(i) + cell.resolution)
 			{
 				x_index = i;
 			}
@@ -81,7 +84,7 @@ namespace map
 		int y_index = -1;
 		for (int j = 0; j < static_cast<int>(ycells.size()); j++)
 		{
-			if (cell.coords.y >= ycells.at(j) and cell.coords.y < ycells.at(j) + resolution)
+			if (cell.coords.y >= ycells.at(j) and cell.coords.y < ycells.at(j) + cell.resolution)
 			{
 				y_index = j;
 			}
@@ -147,6 +150,89 @@ namespace map
 		v.push_back(static_cast<int>(ycells.size()));
 		return v;
 	}
+
+
+	void Grid::update_grid(const Cell & cc, const int & visibility)
+	{
+
+		std::vector<Cell> cells_to_update = get_neighbours(cc, fake_grid, visibility);
+
+		for (auto iter = cells_to_update.begin(); iter < cells_to_update.end(); iter++)
+		{
+			if (!iter->newView)
+			{
+				fake_grid.at(iter->index.row_major).celltype = cells.at(iter->index.row_major).celltype;
+				fake_grid.at(iter->index.row_major).newView = true;
+			}
+		}
+	}
+
+
+	std::vector<Cell> Grid::return_fake_grid() const
+	{
+		return fake_grid;
+	}
+
+
+	void Grid::fake_occupancy_grid(std::vector<int8_t> & map) const
+	{
+		map.resize(fake_grid.size());
+
+		for(unsigned int i = 0; i < fake_grid.size(); i++)
+		{
+			// For each cell type, assign a value to map
+			if (fake_grid.at(i).celltype == Free)
+			{
+				map.at(i) = 0;
+			} else if (fake_grid.at(i).celltype == Inflation)
+			{
+				map.at(i) = 50;
+			} else if (fake_grid.at(i).celltype == Occupied)
+			{
+				map.at(i) = 100;
+			}
+		}
+	}
+
+	std::vector<Cell> Grid::get_neighbours(const Cell & cc, const std::vector<Cell> & map, const int & visibility)
+	{
+		int lower_bound = - visibility;
+		int upper_bound = - lower_bound;
+		int x_max = map.back().index.x;
+		int y_max = map.back().index.y; 
+		std::vector<Cell> neighbours;
+
+		// Evaluate about block. Default is 1 -> 3x3 for 8-connectivity
+		for (int x = lower_bound; x <= upper_bound; x++)
+		{
+			for (int y = lower_bound; y <= upper_bound; y++)
+			{
+				// Skip x,y = (0,0) since that's the current node
+				if (x == 0 and y == 0)
+				{
+					continue;
+				} else
+				{
+					int check_x = cc.index.x + x;
+					int check_y = cc.index.y + y;
+
+					// Ensure potential neighbour is within grid bounds
+					if (check_x >= 0 and check_x <= x_max and check_y >= 0 and check_y <= y_max)
+					{
+						// Now we need to grab the right cell from the map. To do this: index->RMJ
+						// std::cout << "Neighbour at [" << check_x << ", " << check_y << "]" << std::endl;
+						int rmj = map::grid2rowmajor(check_x, check_y, x_max + 1);
+						Cell nbr = map.at(rmj);
+						neighbours.push_back(nbr);
+					}
+				}
+			}
+		}
+
+		return neighbours;
+	}
+
+
 
 	Index rowmajor2grid(const int & rmj, const int & numcol)
     {

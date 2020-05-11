@@ -17,7 +17,7 @@ namespace map
 
     };
 
-    enum CellType {Start, Goal, Occupied, Inflation, Free};
+    enum CellType {Occupied, Inflation, Free};
 
     // \brief struct to store Cell paramters such as coordinates, center coordinates,
     // whether a cell has been visited, and the cell type (Start, Goal, Obstacle, Standard)
@@ -37,6 +37,9 @@ namespace map
         double value = 0.0;
         // Cell index in grid (also RMJ)
         Index index;
+        double resolution;
+        // Used for simulated grid update
+        bool newView = false;
     };
 
     /// \brief stores Obstacle(s) to construct basic Grid. Inherits from Map in map.hpp.
@@ -53,9 +56,8 @@ namespace map
 
         // \brief converts world coordinates to grid coordinates and returns result
         // \param cell: a grid cell
-        // \param resolution: determines the grid cell size
         // \returns the grid cell's world coordinates
-        Index world2grid(const Cell & cell, const double & resolution) const;
+        Index world2grid(const Cell & cell) const;
 
         // \brief converts grid coordinates to world coordinates and returns result
         // \param i: x-coordinate of grid cell
@@ -76,6 +78,25 @@ namespace map
         // \returns int vector containing width and height respectively.
         std::vector<int> return_grid_dimensions() const;
 
+        // \brief gets the neighbours of a given cell according to a visibility bound
+        // \param current_cell: the cell from which we simulate the update
+        // \param visibility: size of bounding box used for update (can vary each iteration if desired). DEFAULT is 1 for 3x3 eval.
+        // \returns: vector of neighbour Cells
+        std::vector<Cell> get_neighbours(const Cell & cc, const std::vector<Cell> & map, const int & visibility=1);
+
+        // \brief Increment fake copy of grid for simulated updates
+        // \param current_cell: the cell from which we simulate the update
+        // \param visibility: size of bounding box used for update (can vary each iteration if desired)
+        void update_grid(const Cell & cc, const int & visibility);
+
+        // \brief Return FAKE (simulated increment) Grid in row-major order
+        // \returns vector containing grid cells as Cell
+        std::vector<Cell> return_fake_grid() const;
+
+        // \brief populates Occupancy Grid with FAKE values for visualization
+        // \param map: the Occupancy Grid map to populate
+        void fake_occupancy_grid(std::vector<int8_t> & map) const;
+
         // \brief Checks whether a potential Vertex lies on an Obstacle. 'map::PRM::sample_configurations' calls this function.
         // \param q: the Vertex being examined
         friend bool not_inside(const Vertex & q, const std::vector<Obstacle> & obstacles, const double & inflate_robot);
@@ -89,6 +110,7 @@ namespace map
 
     private:
         std::vector<Cell> cells;
+        std::vector<Cell> fake_grid;
         std::vector<double> xcells;
         std::vector<double> ycells;
     };

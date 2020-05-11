@@ -645,7 +645,7 @@ namespace global
 	{
 		Cell temp_cell(position, resolution);
 
-		Index idx = grid.world2grid(temp_cell, resolution);
+		Index idx = grid.world2grid(temp_cell);
 
 		return (grid.return_grid().at(idx.row_major));
 	}

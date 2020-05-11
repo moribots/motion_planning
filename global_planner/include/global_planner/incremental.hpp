@@ -81,6 +81,12 @@ namespace global
         // \returns: vector of Node
         std::vector<Node> return_path();
 
+        // \brief update FakeGrid (internal perception) with updated grid and then
+        // use this new information to update each affected Node, and hence the path
+        // param updated_grid: the updated grid
+        // \returns: nodes that had to be updated based on new information
+        std::vector<Node> SimulateUpdate(const std::vector<Cell> & updated_grid);
+
     private:
         std::vector<Node> path;
         // Fake grid with limited visibility for simulating increment

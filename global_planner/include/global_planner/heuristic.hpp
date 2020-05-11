@@ -41,6 +41,9 @@ namespace global
 
         // NOTE: gcost will be initialized to 1e12 (inf) for LPA* and D* Lite
         double gcost, hcost, fcost = 0.0;
+
+        // Store children for update using incremental gridmap
+        std::vector<int> children_ids;
     };
 
     // Bolean operator so that std::find can be used with struct sub-element in closed list

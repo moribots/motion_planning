@@ -280,4 +280,36 @@ namespace global
 		return path;
 	}
 
+
+	std::vector<Node> LPAstar::SimulateUpdate(const std::vector<Cell> & updated_grid)
+	{
+		std::vector<Node> updated_nodes;
+		for (unsigned int i = 0; i < updated_grid.size(); i++)
+		{
+			// First, update FakeGrid
+			FakeGrid.at(i).cell = updated_grid.at(i);
+
+			// Then, for each UPDATED Cell (cell.newView = true;), UpdateCell() on its neighbours
+			if (updated_grid.at(i).newView)
+			{
+				// Push back culprit
+				updated_nodes.push_back(FakeGrid.at(i));
+
+				std::vector<Node> neighbours = get_neighbours(FakeGrid.at(i), FakeGrid);
+				for (auto iter = neighbours.begin(); iter < neighbours.end(); iter++)
+				{
+					UpdateCell(*iter);
+					// Push back neighbours
+					updated_nodes.push_back(*iter);
+				}
+			}
+		}
+
+		// Retrace path from goal
+		trace_path(goal_node);
+
+		// Return updated nodes
+		return updated_nodes;
+	}
+
 }	

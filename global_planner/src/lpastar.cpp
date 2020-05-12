@@ -175,11 +175,24 @@ int main(int argc, char** argv)
     visualization_msgs::Marker curr_pos_marker;
     curr_pos_marker = path_sph_mkr;
     // More visible than PRM
-    curr_pos_marker.scale.x = 0.06;
-    curr_pos_marker.scale.y = 0.06;
+    curr_pos_marker.scale.x = 0.1;
+    curr_pos_marker.scale.y = 0.1;
     curr_pos_marker.color.r = 1.0;
     curr_pos_marker.color.g = 0.2;
     curr_pos_marker.color.b = 0.2;
+
+    // UpdateCell() MARKER
+    visualization_msgs::Marker update_marker;
+    update_marker = path_sph_mkr;
+    // More visible than PRM
+    update_marker.scale.x = 0.04;
+    update_marker.scale.y = 0.04;
+    update_marker.scale.z = 0.04;
+    update_marker.color.r = 0.96f;
+    update_marker.color.g = 0.475f;
+    update_marker.color.b = 0.0f;
+    update_marker.color.a = 1.0;
+    update_marker.lifetime = ros::Duration(1.0 / frequency);
 
 
     // LPA* or D* Lite Path
@@ -227,6 +240,7 @@ int main(int argc, char** argv)
     ros::Rate rate(frequency);
 
     unsigned int path_counter = 0;
+    std::vector<global::Node> updated_nodes;
 
     // Main While
     while (ros::ok())
@@ -234,13 +248,14 @@ int main(int argc, char** argv)
         ros::spinOnce();
 
         // FAKE Update
+        updated_nodes.clear();
         if (path_counter < path.size() - 1)
         {
           grid.update_grid(path.at(path_counter).cell, visibility);
           path_counter++;
           // ROS_INFO("UPDATE NUMBER: %d", path_counter);
           // LPA* Update
-          lpastar.SimulateUpdate(grid.return_fake_grid());
+          updated_nodes = lpastar.SimulateUpdate(grid.return_fake_grid());
         } else
         {
           // FINAL PATH. INFINITE MARKER DURATION
@@ -281,8 +296,21 @@ int main(int argc, char** argv)
         path_arr.markers.push_back(path_marker);
         curr_pos_marker.pose.position.x = path.at(path_counter).cell.coords.x;
         curr_pos_marker.pose.position.y = path.at(path_counter).cell.coords.y;
-        curr_pos_marker.id = path_marker_id + 1;
+
+        // Push Back Current Position
+        path_marker_id++;
+        curr_pos_marker.id = path_marker_id;
         path_arr.markers.push_back(curr_pos_marker);
+
+        // Push Back Updated Cell Markers
+        for (auto node_iter = updated_nodes.begin(); node_iter != updated_nodes.end(); node_iter++)
+        {
+          path_marker_id++;
+          update_marker.pose.position.x = node_iter->cell.coords.x;
+          update_marker.pose.position.y = node_iter->cell.coords.y;
+          update_marker.id = path_marker_id;
+          path_arr.markers.push_back(update_marker);
+        }
 
         // Publish Path
         path_pub.publish(path_arr);

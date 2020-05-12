@@ -24,9 +24,12 @@ In progress:
 
 	<img src="global_planner/media/thetastar.png" alt="ASTAR" width="300"/>
 
-	- LPA* (no edge changes) / A* (green) on Grid
+	- A* (green) on Grid
 
 	<img src="global_planner/media/lpastar.png" alt="ASTARG" width="300"/>
+
+	- LPA* with Simulated Grid Updates
+	<img src="global_planner/media/LPAstar.gif" alt="LPASTAR" width="300"/>
 
 	- D* Lite V2 on Grid
 	- Potential Field with local minimum escape on Grid

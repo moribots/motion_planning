@@ -28,10 +28,10 @@ In progress:
 
 	<img src="global_planner/media/lpastar.png" alt="ASTARG" width="300"/>
 
-	- LPA* with Simulated Grid Updates
+	- LPA* with Simulated Grid Updates [re-evaluated cells in orange]
 	<img src="global_planner/media/LPAstar.gif" alt="LPASTAR" width="300"/>
 
-	- D* Lite V2 on Grid
+	- D* Lite V2 on Grid [re-evaluated cells in orange]
 	<img src="global_planner/media/DstarLite.gif" alt="DSL" width="300"/>
 
 	- Potential Field with local minimum escape on Grid

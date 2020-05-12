@@ -37,7 +37,19 @@
   </node>
 
   <!-- Grid with LPA* Node -->
-  <node name="lpastar" pkg="global_planner" type="lpastar" output="screen">
+<!--   <node name="lpastar" pkg="global_planner" type="lpastar" output="screen">
+    <rosparam command="load" file="$(find map)/config/map.yaml"/>
+    <rosparam command="load" file="$(find global_planner)/config/path.yaml"/>
+    <param name="thresh" value="0.1"/>
+    <param name="inflate" value="0.1"/>
+    <param name="scale" value="10.0"/>
+    <param name="resolution" value="0.1"/>
+    <param name="frequency" value="2.0"/>
+    <param name="visibility" value="5"/>
+  </node> -->
+
+   <!-- Grid with D*Lite Node -->
+  <node name="dsl" pkg="global_planner" type="dsl" output="screen">
     <rosparam command="load" file="$(find map)/config/map.yaml"/>
     <rosparam command="load" file="$(find global_planner)/config/path.yaml"/>
     <param name="thresh" value="0.1"/>

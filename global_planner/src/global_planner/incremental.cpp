@@ -213,6 +213,7 @@ namespace global
 			return false;
 		}
 	}
+	
 
 	std::vector<Node> LPAstar::trace_path(const Node & final_node)
 	{
@@ -332,6 +333,109 @@ namespace global
 		ComputeShortestPath();
 		// Return updated nodes
 		return updated_nodes;
+	}
+
+
+	void DSL::Initialize(const Vector2D & start, const Vector2D & goal, const map::Grid & grid_, const double & resolution)
+	{
+		GRID = grid_.return_fake_grid();
+		FakeGrid.clear();
+
+		// NOTE: START AND GOAL POSITIONS FLIPPED FOR D*LITE
+		// Find Start and Goal Nodes
+	    goal_node.cell = find_nearest_node(start, grid_, resolution);
+	    goal_node.id = goal_node.cell.index.row_major;
+	    goal_node.hcost = 0.0;
+	    CalculateKeys(goal_node);
+
+	    // Find GRID cell whose coordinates most closely match the start coordinates
+	    start_node.cell = find_nearest_node(goal, grid_, resolution);
+	    start_node.id = start_node.cell.index.row_major;
+	    start_node.hcost = heuristic(start_node, goal_node);
+	    start_node.rhs = 0.0;
+	    CalculateKeys(start_node);
+	    // std::cout << "START, IDX: [" << start_node.cell.index.x << ", " << start_node.cell.index.y << "]"<< std::endl;
+	    // std::cout << "GOAL, IDX: [" << goal_node.cell.index.x << ", " << goal_node.cell.index.y << "]"<< std::endl;
+
+		// Populate Fake Grid
+		for (auto iter = GRID.begin(); iter < GRID.end(); iter++)
+		{
+			Node node;
+			node.cell = *iter;
+			node.id = node.cell.index.row_major;
+			if (node.id == goal_node.id)
+			{
+				node = goal_node;
+			} else if (node.id == start_node.id)
+			{
+				node = start_node;
+			}
+			node.gcost = 1e12;
+			// TODO: When vanilla is done, clear all obstacle/inflated in FakeGrid for simulated increment
+			FakeGrid.push_back(node);
+		}
+
+		// Populate Open List
+		open_list.push(start_node);
+		open_list_v.insert(start_node.id);
+
+		std::cout << "Initialized!" << std::endl;
+	}
+
+
+	std::vector<Node> DSL::SimulateUpdate(const std::vector<Cell> & updated_grid)
+	{
+		// First, make sure g(goal [start in paper]!= inf, otherwise no path)
+		if (goal_node.gcost >= 1e12)
+		{
+			std::cout << "There is no valid path." << std::endl;
+			trace_path(goal_node);
+		}
+		// Change new goal node [start in D*Lite paper]
+		std::priority_queue <Node, std::vector<Node>, CostComparator > pred_costs;
+		// Find the predecessors of node n
+		std::vector<Node> predecessors = get_neighbours(goal_node, FakeGrid);
+
+		for (auto pred_iter = predecessors.begin(); pred_iter < predecessors.end(); pred_iter++)
+    	{
+    		// Find the neighbour node
+    		Node predecessor;
+    		predecessor = *pred_iter;
+    		predecessor.id = predecessor.cell.index.row_major;
+
+    		// Skip Occupied or Inflated Cells
+    		if (predecessor.cell.celltype == map::Occupied or\
+    			predecessor.cell.celltype == map::Inflation)
+    		{	    			
+    			// Push to priority queue for auto sort
+    			// This is not actually stored anywhere, just useful in getting min gcost for n
+    			predecessor.gcost += 1e12;
+    		} else
+    		// Free Cells
+    		{
+    			// Push to priority queue for auto sort
+    			// This is not actually stored anywhere, just useful in getting min gcost for n
+    			predecessor.gcost += 1.0;
+    		}
+
+    		pred_costs.push(predecessor);
+    	}
+
+    	Node min_predecessor = pred_costs.top();
+
+    	//Update Goal Node (start in D*L paper)
+    	goal_node = FakeGrid.at(min_predecessor.id);
+		GRID = updated_grid;
+		std::vector<Node> updated_nodes = LPAstar::SimulateUpdate(updated_grid);
+
+		return updated_nodes;
+	}
+
+	std::vector<Node> DSL::return_path()
+	{
+		std::vector<Node> p = path;
+		std::reverse(p.begin(), p.end());
+		return p;
 	}
 
 }	

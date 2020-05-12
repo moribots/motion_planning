@@ -52,15 +52,16 @@ namespace global
 
         // \brief Plans an incremental path on a Grid.
         // \returns: the path as a vector of Nodes
-        virtual void ComputeShortestPath();
+        void ComputeShortestPath();
 
         // Update the cost of a cell and remove it from the open list if it's there
+        // param n: the node to update
         void UpdateCell(Node & n);
 
         // \brief sets the g-values of all cells (start and goal for efficiency) to infinity and sets their rhs values according to eqn 1.
         // Also inserts start (locally inconsistent vertex) into the (otherwise empty) priority queue.
         // This guarantees that the first run of ComputeShortestPath performs an exact A* search.
-        void Initialize(const Vector2D & start, const Vector2D & goal, const Grid & grid_, const double & resolution);
+        virtual void Initialize(const Vector2D & start, const Vector2D & goal, const Grid & grid_, const double & resolution);
 
         // Calculates priorities 1 and 2 of a node, used in sorting for LPA*
         // \param n: the node whose keys we calculate
@@ -79,15 +80,15 @@ namespace global
 
         // \brief returns the most current path
         // \returns: vector of Node
-        std::vector<Node> return_path();
+        virtual std::vector<Node> return_path();
 
         // \brief update FakeGrid (internal perception) with updated grid and then
         // use this new information to update each affected Node, and hence the path
         // param updated_grid: the updated grid
         // \returns: nodes that had to be updated based on new information
-        std::vector<Node> SimulateUpdate(const std::vector<Cell> & updated_grid);
+        virtual std::vector<Node> SimulateUpdate(const std::vector<Cell> & updated_grid);
 
-    private:
+    protected:
         std::vector<Node> path;
         // Fake grid with limited visibility for simulating increment
         std::vector<Node> FakeGrid;
@@ -106,6 +107,31 @@ namespace global
 
         // Number of visible cells added per increment
         int viz_cells = 1;
+    };
+
+
+    // \brief D* Lite Planner
+    class DSL: public LPAstar
+    {
+        using LPAstar::LPAstar;
+
+    public:
+        // \brief sets the g-values of all cells (start and goal for efficiency) to infinity and sets their rhs values according to eqn 1.
+        // Also inserts start (locally inconsistent vertex) into the (otherwise empty) priority queue.
+        // This guarantees that the first run of ComputeShortestPath performs an exact A* search.
+        // NOTE: flips start and goal for D*Lite so that everything else stays the same
+        void Initialize(const Vector2D & start, const Vector2D & goal, const Grid & grid_, const double & resolution);
+
+        // \brief update FakeGrid (internal perception) with updated grid and then
+        // use this new information to update each affected Node, and hence the path
+        // param updated_grid: the updated grid
+        // \returns: nodes that had to be updated based on new information
+        std::vector<Node> SimulateUpdate(const std::vector<Cell> & updated_grid);
+
+        // \brief returns the most current path. Flips path returned by LPAstar since D*L plans the opposite way
+        // \returns: vector of Node
+        std::vector<Node> return_path();
+
     };
 }
 

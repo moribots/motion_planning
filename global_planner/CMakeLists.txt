@@ -149,6 +149,7 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 # add_executable(${PROJECT_NAME}_node src/map_node.cpp)
 add_executable(astar src/astar.cpp)
 add_executable(lpastar src/lpastar.cpp)
+add_executable(dsl src/dsl.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -157,12 +158,14 @@ add_executable(lpastar src/lpastar.cpp)
 # set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
 set_target_properties(astar PROPERTIES OUTPUT_NAME astar PREFIX "")
 set_target_properties(lpastar PROPERTIES OUTPUT_NAME lpastar PREFIX "")
+set_target_properties(dsl PROPERTIES OUTPUT_NAME dsl PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(astar ${${PROJECT_NAME}_EXPORTED_TARGETS} ${Eigen3_EXPORTED_TARGETS} ${map_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(lpastar ${${PROJECT_NAME}_EXPORTED_TARGETS} ${Eigen3_EXPORTED_TARGETS} ${map_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(dsl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${Eigen3_EXPORTED_TARGETS} ${map_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(
@@ -177,6 +180,16 @@ ${catkin_LIBRARIES}
 
 target_link_libraries(
 lpastar
+${map_LIBRARIES}
+${rigid2d_LIBRARIES}
+${nuslam_LIBRARIES}
+Eigen3::Eigen
+${PROJECT_NAME}
+${catkin_LIBRARIES}
+)
+
+target_link_libraries(
+dsl
 ${map_LIBRARIES}
 ${rigid2d_LIBRARIES}
 ${nuslam_LIBRARIES}
@@ -201,7 +214,7 @@ ${catkin_LIBRARIES}
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
-install(TARGETS astar lpastar
+install(TARGETS astar lpastar dsl
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

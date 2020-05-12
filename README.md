@@ -32,6 +32,8 @@ In progress:
 	<img src="global_planner/media/LPAstar.gif" alt="LPASTAR" width="300"/>
 
 	- D* Lite V2 on Grid
+	<img src="global_planner/media/DstarLite.gif" alt="DSL" width="300"/>
+
 	- Potential Field with local minimum escape on Grid
 * Local planner:
 	- Dynamic Window Approach

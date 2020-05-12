@@ -239,40 +239,30 @@ int main(int argc, char** argv)
 
     ros::Rate rate(frequency);
 
-    // Always taking the 1th cell
+    // Always taking the 1th cell to 'move forward'
     unsigned int path_counter = 1;
     std::vector<global::Node> updated_nodes;
 
     // For displaying final path at the end
+    // Push back twice since out visualizer displays from the 1th element
     std::vector<global::Node> total_path;
+    total_path.push_back(path.front());
+    total_path.push_back(path.front());
+    // Update Current Position Counter
+    curr_pos_marker.pose.position.x = path.at(path_counter).cell.coords.x;
+    curr_pos_marker.pose.position.y = path.at(path_counter).cell.coords.y;
+
+    // End condition for update
+    bool planning = true;
+
+    // SLEEP so that I can prepare my screen recorder
+    // ros::Duration(5.0).sleep();
 
     // Main While
     while (ros::ok())
     {
         ros::spinOnce();
 
-        // FAKE Update
-        updated_nodes.clear();
-        if (path_counter < path.size() - 1)
-        {
-            // Update total path
-            total_path.push_back(path.at(0));
-            // Update Grid
-            grid.update_grid(path.at(path_counter).cell, visibility);
-            // D*Lite Update
-            updated_nodes = dsl.SimulateUpdate(grid.return_fake_grid());
-            // Return Path
-            path = dsl.return_path();
-        } else
-        {
-            // FINAL PATH. INFINITE MARKER DURATION
-            path_marker.lifetime = ros::Duration();
-            path_sph_mkr.lifetime = ros::Duration();
-            path_sph_mkr.lifetime = ros::Duration();
-            curr_pos_marker.lifetime = ros::Duration();
-            // Show whole path
-            path = total_path;
-        }
         // rviz representation of the grid
         grid.fake_occupancy_grid(map);
         // Publish GRID Map
@@ -280,10 +270,13 @@ int main(int argc, char** argv)
         grid_map.info.map_load_time = ros::Time::now();
         grid_map.data = map;
         grid_pub.publish(grid_map);
+
+
+        // DRAW PATH
         path_arr.markers.clear();
         path_marker.points.clear();
-
         int path_marker_id = 0;
+        // +1 to simulate move forward
         for (auto path_iter = path.begin()+1; path_iter != path.end(); path_iter++)
         {
             // Add node as marker cell
@@ -302,8 +295,6 @@ int main(int argc, char** argv)
         }
         path_marker.id = path_marker_id;
         path_arr.markers.push_back(path_marker);
-        curr_pos_marker.pose.position.x = path.at(path_counter).cell.coords.x;
-        curr_pos_marker.pose.position.y = path.at(path_counter).cell.coords.y;
 
         // Push Back Current Position
         path_marker_id++;
@@ -322,6 +313,33 @@ int main(int argc, char** argv)
 
         // Publish Path
         path_pub.publish(path_arr);
+
+        // FAKE Update
+        updated_nodes.clear();
+        if (path_counter < path.size() - 1 and planning)
+        {
+            // Update Grid
+            grid.update_grid(path.at(path_counter).cell, visibility);
+            // D*Lite Update
+            updated_nodes = dsl.SimulateUpdate(grid.return_fake_grid());
+            // Return Path
+            path = dsl.return_path();
+            // Update total path
+            total_path.push_back(path.at(path_counter));
+            // Update Current Position Counter
+            curr_pos_marker.pose.position.x = path.at(path_counter).cell.coords.x;
+            curr_pos_marker.pose.position.y = path.at(path_counter).cell.coords.y;
+        } else
+        {
+            // FINAL PATH. INFINITE MARKER DURATION
+            path_marker.lifetime = ros::Duration();
+            path_sph_mkr.lifetime = ros::Duration();
+            path_sph_mkr.lifetime = ros::Duration();
+            curr_pos_marker.lifetime = ros::Duration();
+            path = total_path;
+            planning = false;
+        }
+
         rate.sleep();
     }
 

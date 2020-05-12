@@ -256,12 +256,19 @@ int main(int argc, char** argv)
     bool planning = true;
 
     // SLEEP so that I can prepare my screen recorder
-    // ros::Duration(5.0).sleep();
+    ros::Duration(2.0).sleep();
+
+    // For visualization purposes (See below)
+    bool firstpass = true;
 
     // Main While
     while (ros::ok())
     {
         ros::spinOnce();
+        path_marker.lifetime = ros::Duration();
+        path_sph_mkr.lifetime = ros::Duration();
+        path_sph_mkr.lifetime = ros::Duration();
+        curr_pos_marker.lifetime = ros::Duration();
 
         // rviz representation of the grid
         grid.fake_occupancy_grid(map);
@@ -340,6 +347,17 @@ int main(int argc, char** argv)
             planning = false;
         }
 
+        // Make the markers persist for the first iteration to show original path
+        if (firstpass)
+        {
+            ros::Duration(1.0).sleep();
+            path_marker.lifetime = ros::Duration(1.0 / frequency);
+            path_sph_mkr.lifetime = ros::Duration(1.0 / frequency);
+            path_sph_mkr.lifetime = ros::Duration(1.0 / frequency);
+            curr_pos_marker.lifetime = ros::Duration(1.0 / frequency);
+        }
+
+        firstpass = false;
         rate.sleep();
     }
 

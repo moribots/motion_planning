@@ -155,14 +155,18 @@ namespace map
 	void Grid::update_grid(const Cell & cc, const int & visibility)
 	{
 
-		std::vector<Cell> cells_to_update = get_neighbours(cc, fake_grid, visibility);
+		std::vector<Cell> cells_to_update = get_neighbours(cc, cells, visibility);
 
 		for (auto iter = cells_to_update.begin(); iter < cells_to_update.end(); iter++)
 		{
-			if (!iter->newView)
+			if (fake_grid.at(iter->index.row_major).celltype != iter->celltype)
 			{
-				fake_grid.at(iter->index.row_major).celltype = cells.at(iter->index.row_major).celltype;
+				// std::cout << "NEW OCCUPANCY: " << iter->index.row_major << std::endl;
+				fake_grid.at(iter->index.row_major).celltype = iter->celltype;
 				fake_grid.at(iter->index.row_major).newView = true;
+			} else
+			{
+				fake_grid.at(iter->index.row_major).newView = false;
 			}
 		}
 	}

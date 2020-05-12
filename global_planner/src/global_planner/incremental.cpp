@@ -4,7 +4,7 @@ namespace global
 {
 	void LPAstar::ComputeShortestPath()
 	{
-		Node min = start_node;
+		Node min;
 		int iterations= 0;
 		while (Continue(iterations))
 		{
@@ -19,7 +19,6 @@ namespace global
 			min = open_list.top();
 			open_list.pop();
 			open_list_v.erase(min.id);
-			// std::cout << "MIN, IDX: [" << min.cell.index.x << ", " << min.cell.index.y << "]"<< std::endl;
 
 			// Check if Overconsistent (start always satisfies this)
 			if (min.gcost > min.rhs)
@@ -40,6 +39,7 @@ namespace global
 			{
 				// std::cout << "NOT Locally Overconsistent!" << std::endl;
 				min.gcost = 1e12;
+				FakeGrid.at(min.id) = min;
 				// Check Successors
 				std::vector<Node> successors = get_neighbours(min, FakeGrid);
 				// ALSO check min itself
@@ -49,94 +49,91 @@ namespace global
 					UpdateCell(*succ);
 				}
 			}
-			// std::cout << "--------------------" << std::endl;
 		}
-		path = trace_path(min);
+		path = trace_path(goal_node);
 	}
 
 
 	void LPAstar::UpdateCell(Node & n)
 	{
-		if (!(n.cell.celltype == map::Occupied or\
-	    	  n.cell.celltype == map::Inflation))
-	    {
-	    	// Check this node isn't the start node
-			if (n.id != start_node.id)
-			{
-				std::priority_queue <Node, std::vector<Node>, CostComparator > pred_costs;
-				// Find the predecessors of node n
-				std::vector<Node> predecessors = get_neighbours(n, FakeGrid);
+    	// Check this node isn't the start node
+		if (n.id != start_node.id)
+		{
+			std::priority_queue <Node, std::vector<Node>, CostComparator > pred_costs;
+			// Find the predecessors of node n
+			std::vector<Node> predecessors = get_neighbours(n, FakeGrid);
 
-				for (auto pred_iter = predecessors.begin(); pred_iter < predecessors.end(); pred_iter++)
-		    	{
-		    		// Find the neighbour node
-		    		Node predecessor;
-		    		predecessor = *pred_iter;
-		    		predecessor.id = predecessor.cell.index.row_major;
-
-		    		// Skip Occupied or Inflated Cells
-		    		if (predecessor.cell.celltype == map::Occupied or\
-		    			predecessor.cell.celltype == map::Inflation)
-		    		{	    			
-		    			continue;
-		    		} else
-		    		// Free Cells
-		    		{
-		    			// Push to priority queue for auto sort
-		    			// This is not actually stored anywhere, just useful in getting min gcost for n
-		    			predecessor.gcost += 1.0;
-		    			pred_costs.push(predecessor);
-		    		}
-
-		    	}
-
-		    	Node min_predecessor = pred_costs.top();
-
-		    	// Update RHS value
-		    	n.rhs = min_predecessor.gcost;
-		    	// Update Parent
-		    	n.parent_id = min_predecessor.id;
-		    }
-	    	// If it's on the open list, remove it
-	    	bool opened = open_list_v.find(n.id) != open_list_v.end();
-	    	open_list_v.erase(n.id);
-	    	if (opened)
+			for (auto pred_iter = predecessors.begin(); pred_iter < predecessors.end(); pred_iter++)
 	    	{
-	    		// std::cout << "Erase, IDX: [" << n.cell.index.x << ", " << n.cell.index.y << "]"<< std::endl;
-	    		std::priority_queue <Node, std::vector<Node>, KeyComparator > temp_open_list;
-				while (!open_list.empty())
-				{
-					Node temp = open_list.top();
-					// Don't include the current node since we are trying to erase it
-					if (temp.id != n.id)
-					{
-						temp_open_list.push(temp);
-					}
-					open_list.pop();
-				}
+	    		// Find the neighbour node
+	    		Node predecessor;
+	    		predecessor = *pred_iter;
+	    		predecessor.id = predecessor.cell.index.row_major;
 
-				open_list = temp_open_list;
+	    		// Skip Occupied or Inflated Cells
+	    		if (predecessor.cell.celltype == map::Occupied or\
+	    			predecessor.cell.celltype == map::Inflation)
+	    		{	    			
+	    			// Push to priority queue for auto sort
+	    			// This is not actually stored anywhere, just useful in getting min gcost for n
+	    			predecessor.gcost += 1e12;
+	    		} else
+	    		// Free Cells
+	    		{
+	    			// Push to priority queue for auto sort
+	    			// This is not actually stored anywhere, just useful in getting min gcost for n
+	    			predecessor.gcost += 1.0;
+	    		}
+
+	    		pred_costs.push(predecessor);
+
 	    	}
 
-	    	// If n is locally inconsistent (ie if n.gcost != n.rhs), add it to the open list with updated keys
-	    	if (!(rigid2d::almost_equal(n.gcost, n.rhs)))
-	    	{
-	    		// std::cout << "Push, IDX: [" << n.cell.index.x << ", " << n.cell.index.y << "]"<< std::endl;
-	    		n.hcost = heuristic(n, goal_node);
-	    		CalculateKeys(n);
-	    		open_list.push(n);
-	    		open_list_v.insert(n.id);
-	    	}
+	    	Node min_predecessor = pred_costs.top();
 
-	    	// Update n in FakeGrid
-	    	FakeGrid.at(n.id) = n;
+	    	// Update RHS value
+	    	n.rhs = min_predecessor.gcost;
+	    	// Update Parent
+	    	n.parent_id = min_predecessor.id;
 	    }
+    	// If it's on the open list, remove it
+    	bool opened = open_list_v.find(n.id) != open_list_v.end();
+    	open_list_v.erase(n.id);
+    	if (opened)
+    	{
+    		// std::cout << "Erase, IDX: [" << n.cell.index.x << ", " << n.cell.index.y << "]"<< std::endl;
+    		std::priority_queue <Node, std::vector<Node>, KeyComparator > temp_open_list;
+			while (!open_list.empty())
+			{
+				Node temp = open_list.top();
+				// Don't include the current node since we are trying to erase it
+				if (temp.id != n.id)
+				{
+					temp_open_list.push(temp);
+				}
+				open_list.pop();
+			}
+
+			open_list = temp_open_list;
+    	}
+
+    	// If n is locally inconsistent (ie if n.gcost != n.rhs), add it to the open list with updated keys
+    	if (!(rigid2d::almost_equal(n.gcost, n.rhs)))
+    	{
+    		n.hcost = heuristic(n, goal_node);
+    		CalculateKeys(n);
+    		open_list.push(n);
+    		open_list_v.insert(n.id);
+    	}
+
+    	// Update n in FakeGrid
+    	FakeGrid.at(n.id) = n;
 	}
 
 
 	void LPAstar::Initialize(const Vector2D & start, const Vector2D & goal, const map::Grid & grid_, const double & resolution)
 	{
-		GRID = grid_.return_grid();
+		GRID = grid_.return_fake_grid();
 		FakeGrid.clear();
 
 		// Find Start and Goal Nodes
@@ -151,6 +148,8 @@ namespace global
 	    start_node.hcost = heuristic(start_node, goal_node);
 	    start_node.rhs = 0.0;
 	    CalculateKeys(start_node);
+	    // std::cout << "START, IDX: [" << start_node.cell.index.x << ", " << start_node.cell.index.y << "]"<< std::endl;
+	    // std::cout << "GOAL, IDX: [" << goal_node.cell.index.x << ", " << goal_node.cell.index.y << "]"<< std::endl;
 
 		// Populate Fake Grid
 		for (auto iter = GRID.begin(); iter < GRID.end(); iter++)
@@ -207,6 +206,10 @@ namespace global
 		} else
 		{
 			std::cout << "Goal found after " << iterations << " Iterations!" << std::endl;
+			// Reset Goal RHS
+			// goal_node.rhs =  1e12;
+			// goal_node.gcost = 1e12;
+			FakeGrid.at(goal_node.id) = goal_node;
 			return false;
 		}
 	}
@@ -283,17 +286,19 @@ namespace global
 
 	std::vector<Node> LPAstar::SimulateUpdate(const std::vector<Cell> & updated_grid)
 	{
+		GRID = updated_grid;
 		std::vector<Node> updated_nodes;
 		for (unsigned int i = 0; i < updated_grid.size(); i++)
 		{
-			// First, update FakeGrid
-			FakeGrid.at(i).cell = updated_grid.at(i);
-
-			// Then, for each UPDATED Cell (cell.newView = true;), UpdateCell() on its neighbours
-			if (updated_grid.at(i).newView)
+			// For each UPDATED Cell (cell.newView = true;), UpdateCell() on its neighbours
+			if (updated_grid.at(i).newView and FakeGrid.at(i).cell.celltype != updated_grid.at(i).celltype)
 			{
+				// First, update FakeGrid
+				FakeGrid.at(i).cell = updated_grid.at(i);
 				// Push back culprit
 				updated_nodes.push_back(FakeGrid.at(i));
+
+				// std::cout << "NEW OCCUPANCY: " << FakeGrid.at(i).cell.index.row_major << std::endl;
 
 				std::vector<Node> neighbours = get_neighbours(FakeGrid.at(i), FakeGrid);
 				for (auto iter = neighbours.begin(); iter < neighbours.end(); iter++)
@@ -302,12 +307,29 @@ namespace global
 					// Push back neighbours
 					updated_nodes.push_back(*iter);
 				}
+				// Update Changed Node
+				UpdateCell(FakeGrid.at(i));
 			}
 		}
 
-		// Retrace path from goal
-		trace_path(goal_node);
+		// Update Goal Node
+		UpdateCell(FakeGrid.at(goal_node.id));
 
+		// Re-sort open-list
+		std::priority_queue <Node, std::vector<Node>, KeyComparator > temp_open_list;
+		while (!open_list.empty())
+		{
+			Node temp = open_list.top();
+			temp.hcost = heuristic(temp, goal_node);
+			CalculateKeys(temp);
+			temp_open_list.push(temp);
+			open_list.pop();
+		}
+
+		open_list = temp_open_list;
+
+		// Compute Shortest Path
+		ComputeShortestPath();
 		// Return updated nodes
 		return updated_nodes;
 	}

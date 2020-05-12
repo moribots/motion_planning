@@ -47,6 +47,7 @@ int main(int argc, char** argv)
     // Map Parameters
     double thresh = 0.01;
     double inflate = 0.1;
+    int visibility = 5;
 
     // store Obstacle(s) here to create Map
     std::vector<map::Obstacle> obstacles_v;
@@ -64,6 +65,7 @@ int main(int argc, char** argv)
     nh_.getParam("inflate", inflate);
     nh_.getParam("scale", SCALE);
     nh_.getParam("resolution", resolution);
+    nh_.getParam("visibility", visibility);
 
     rigid2d::Vector2D start(start_vec.at(0)/SCALE, start_vec.at(1)/SCALE);
     rigid2d::Vector2D goal(goal_vec.at(0)/SCALE, goal_vec.at(1)/SCALE);
@@ -143,7 +145,7 @@ int main(int argc, char** argv)
     marker.color.g = 0.475f;
     marker.color.b = 0.0f;
     marker.color.a = 1.0;
-    marker.lifetime = ros::Duration();
+    marker.lifetime = ros::Duration(1.3 / frequency);
 
     // LINE_STRIP relative to this pose
     marker.pose.position.x = 0.0;
@@ -169,6 +171,16 @@ int main(int argc, char** argv)
     path_sph_mkr.color.g = 0.0f;
     path_sph_mkr.color.b = 0.0f;
 
+    // CURRENT POSITION MARKER
+    visualization_msgs::Marker curr_pos_marker;
+    curr_pos_marker = path_sph_mkr;
+    // More visible than PRM
+    curr_pos_marker.scale.x = 0.06;
+    curr_pos_marker.scale.y = 0.06;
+    curr_pos_marker.color.r = 1.0;
+    curr_pos_marker.color.g = 0.2;
+    curr_pos_marker.color.b = 0.2;
+
 
     // LPA* or D* Lite Path
     std::vector<global::Node> path;
@@ -185,9 +197,6 @@ int main(int argc, char** argv)
     // Get map bounds
     auto bounds = grid.return_map_bounds();
     auto gridsize = grid.return_grid_dimensions();
-
-    // rviz representation of the grid
-    grid.occupancy_grid(map);
 
     // Grid Pose
     geometry_msgs::Pose map_pose;
@@ -215,41 +224,65 @@ int main(int argc, char** argv)
     lpastar.ComputeShortestPath();
     path = lpastar.return_path();
 
-
-    // DRAW PATH
-    int path_marker_id = 0;
-    for (auto path_iter = path.begin(); path_iter != path.end(); path_iter++)
-    {
-        // Add node as marker cell
-        geometry_msgs::Point vtx;
-        vtx.x = path_iter->cell.coords.x;
-        vtx.y = path_iter->cell.coords.y;
-        vtx.z = 0.0;
-        path_marker.points.push_back(vtx);
-
-        // Also push back cubes
-        path_sph_mkr.pose.position.x = path_iter->cell.coords.x;
-        path_sph_mkr.pose.position.y = path_iter->cell.coords.y;
-        path_sph_mkr.id = path_marker_id;
-        path_marker_id++;
-        path_arr.markers.push_back(path_sph_mkr);
-
-    }
-    path_marker.id = path_marker_id;
-    path_arr.markers.push_back(path_marker);
-
     ros::Rate rate(frequency);
+
+    unsigned int path_counter = 0;
 
     // Main While
     while (ros::ok())
     {
         ros::spinOnce();
 
+        // FAKE Update
+        if (path_counter < path.size() - 1)
+        {
+          grid.update_grid(path.at(path_counter).cell, visibility);
+          path_counter++;
+          // ROS_INFO("UPDATE NUMBER: %d", path_counter);
+          // LPA* Update
+          lpastar.SimulateUpdate(grid.return_fake_grid());
+        } else
+        {
+          // FINAL PATH. INFINITE MARKER DURATION
+          path_marker.lifetime = ros::Duration();
+          path_sph_mkr.lifetime = ros::Duration();
+          path_sph_mkr.lifetime = ros::Duration();
+          curr_pos_marker.lifetime = ros::Duration();
+        }
+        // rviz representation of the grid
+        grid.fake_occupancy_grid(map);
         // Publish GRID Map
         grid_map.header.stamp = ros::Time::now();
         grid_map.info.map_load_time = ros::Time::now();
         grid_map.data = map;
         grid_pub.publish(grid_map);
+        // DRAW PATH
+        path = lpastar.return_path();
+        path_arr.markers.clear();
+        path_marker.points.clear();
+        int path_marker_id = 0;
+        for (auto path_iter = path.begin(); path_iter != path.end(); path_iter++)
+        {
+            // Add node as marker cell
+            geometry_msgs::Point vtx;
+            vtx.x = path_iter->cell.coords.x;
+            vtx.y = path_iter->cell.coords.y;
+            vtx.z = 0.0;
+            path_marker.points.push_back(vtx);
+
+            // Also push back cubes
+            path_sph_mkr.pose.position.x = path_iter->cell.coords.x;
+            path_sph_mkr.pose.position.y = path_iter->cell.coords.y;
+            path_sph_mkr.id = path_marker_id;
+            path_marker_id++;
+            path_arr.markers.push_back(path_sph_mkr);
+        }
+        path_marker.id = path_marker_id;
+        path_arr.markers.push_back(path_marker);
+        curr_pos_marker.pose.position.x = path.at(path_counter).cell.coords.x;
+        curr_pos_marker.pose.position.y = path.at(path_counter).cell.coords.y;
+        curr_pos_marker.id = path_marker_id + 1;
+        path_arr.markers.push_back(curr_pos_marker);
 
         // Publish Path
         path_pub.publish(path_arr);

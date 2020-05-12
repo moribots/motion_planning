@@ -145,7 +145,7 @@ int main(int argc, char** argv)
     marker.color.g = 0.475f;
     marker.color.b = 0.0f;
     marker.color.a = 1.0;
-    marker.lifetime = ros::Duration(1.3 / frequency);
+    marker.lifetime = ros::Duration();
 
     // LINE_STRIP relative to this pose
     marker.pose.position.x = 0.0;
@@ -192,7 +192,7 @@ int main(int argc, char** argv)
     update_marker.color.g = 0.475f;
     update_marker.color.b = 0.0f;
     update_marker.color.a = 1.0;
-    update_marker.lifetime = ros::Duration(1.0 / frequency);
+    update_marker.lifetime = ros::Duration(1.3 / frequency);
 
 
     // LPA* or D* Lite Path
@@ -265,10 +265,6 @@ int main(int argc, char** argv)
     while (ros::ok())
     {
         ros::spinOnce();
-        path_marker.lifetime = ros::Duration();
-        path_sph_mkr.lifetime = ros::Duration();
-        path_sph_mkr.lifetime = ros::Duration();
-        curr_pos_marker.lifetime = ros::Duration();
 
         // rviz representation of the grid
         grid.fake_occupancy_grid(map);
@@ -341,7 +337,6 @@ int main(int argc, char** argv)
             // FINAL PATH. INFINITE MARKER DURATION
             path_marker.lifetime = ros::Duration();
             path_sph_mkr.lifetime = ros::Duration();
-            path_sph_mkr.lifetime = ros::Duration();
             curr_pos_marker.lifetime = ros::Duration();
             path = total_path;
             planning = false;
@@ -352,7 +347,6 @@ int main(int argc, char** argv)
         {
             ros::Duration(1.0).sleep();
             path_marker.lifetime = ros::Duration(1.0 / frequency);
-            path_sph_mkr.lifetime = ros::Duration(1.0 / frequency);
             path_sph_mkr.lifetime = ros::Duration(1.0 / frequency);
             curr_pos_marker.lifetime = ros::Duration(1.0 / frequency);
         }

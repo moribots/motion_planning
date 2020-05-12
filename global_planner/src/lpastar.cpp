@@ -145,7 +145,7 @@ int main(int argc, char** argv)
     marker.color.g = 0.475f;
     marker.color.b = 0.0f;
     marker.color.a = 1.0;
-    marker.lifetime = ros::Duration(1.3 / frequency);
+    marker.lifetime = ros::Duration();
 
     // LINE_STRIP relative to this pose
     marker.pose.position.x = 0.0;
@@ -242,28 +242,17 @@ int main(int argc, char** argv)
     unsigned int path_counter = 0;
     std::vector<global::Node> updated_nodes;
 
+    // SLEEP so that I can prepare my screen recorder
+    ros::Duration(2.0).sleep();
+
+    // For visualization purposes (See below)
+    bool firstpass = true;
+
     // Main While
     while (ros::ok())
     {
         ros::spinOnce();
 
-        // FAKE Update
-        updated_nodes.clear();
-        if (path_counter < path.size() - 1)
-        {
-          grid.update_grid(path.at(path_counter).cell, visibility);
-          path_counter++;
-          // ROS_INFO("UPDATE NUMBER: %d", path_counter);
-          // LPA* Update
-          updated_nodes = lpastar.SimulateUpdate(grid.return_fake_grid());
-        } else
-        {
-          // FINAL PATH. INFINITE MARKER DURATION
-          path_marker.lifetime = ros::Duration();
-          path_sph_mkr.lifetime = ros::Duration();
-          path_sph_mkr.lifetime = ros::Duration();
-          curr_pos_marker.lifetime = ros::Duration();
-        }
         // rviz representation of the grid
         grid.fake_occupancy_grid(map);
         // Publish GRID Map
@@ -271,6 +260,7 @@ int main(int argc, char** argv)
         grid_map.info.map_load_time = ros::Time::now();
         grid_map.data = map;
         grid_pub.publish(grid_map);
+
         // DRAW PATH
         path = lpastar.return_path();
         path_arr.markers.clear();
@@ -314,6 +304,35 @@ int main(int argc, char** argv)
 
         // Publish Path
         path_pub.publish(path_arr);
+
+        // FAKE Update
+        updated_nodes.clear();
+        if (path_counter < path.size() - 1)
+        {
+          grid.update_grid(path.at(path_counter).cell, visibility);
+          path_counter++;
+          // ROS_INFO("UPDATE NUMBER: %d", path_counter);
+          // LPA* Update
+          updated_nodes = lpastar.SimulateUpdate(grid.return_fake_grid());
+        } else
+        {
+          // FINAL PATH. INFINITE MARKER DURATION
+          path_marker.lifetime = ros::Duration();
+          path_sph_mkr.lifetime = ros::Duration();
+          curr_pos_marker.lifetime = ros::Duration();
+        }
+
+        // Make the markers persist for the first iteration to show original path
+        if (firstpass)
+        {
+            ros::Duration(1.0).sleep();
+            path_marker.lifetime = ros::Duration(1.3 / frequency);
+            path_sph_mkr.lifetime = ros::Duration(1.3 / frequency);
+            curr_pos_marker.lifetime = ros::Duration(1.3 / frequency);
+        }
+
+        firstpass = false;
+
         rate.sleep();
     }
 

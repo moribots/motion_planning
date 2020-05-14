@@ -8,7 +8,7 @@ namespace map
 	{
 		coords = coords_;
 
-		double offset = euclidean_distance(resolution_, resolution_) / 2.0;
+		double offset = resolution_ / 2.0;
 
 		center_coords = Vector2D(coords.x + offset, coords.y + offset);
 		resolution = resolution_;

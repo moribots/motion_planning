@@ -90,7 +90,7 @@ int main(int argc, char** argv)
           } else {
               for(int j = 0; j < xml_obstacles[i].size(); ++j)
               {
-                // Vector2D contains x,y coords
+                // Vector2D contains x,y center_coords
                 if(xml_obstacles[i][j].size() != 2)
                 {
                    ROS_ERROR("Vertex[%d] of obstacles[%d] is not a pair of coordinates", j, i);
@@ -249,8 +249,8 @@ int main(int argc, char** argv)
     total_path.push_back(path.front());
     total_path.push_back(path.front());
     // Update Current Position Counter
-    curr_pos_marker.pose.position.x = path.at(path_counter).cell.coords.x;
-    curr_pos_marker.pose.position.y = path.at(path_counter).cell.coords.y;
+    curr_pos_marker.pose.position.x = path.at(path_counter).cell.center_coords.x;
+    curr_pos_marker.pose.position.y = path.at(path_counter).cell.center_coords.y;
 
     // End condition for update
     bool planning = true;
@@ -284,14 +284,14 @@ int main(int argc, char** argv)
         {
             // Add node as marker cell
             geometry_msgs::Point vtx;
-            vtx.x = path_iter->cell.coords.x;
-            vtx.y = path_iter->cell.coords.y;
+            vtx.x = path_iter->cell.center_coords.x;
+            vtx.y = path_iter->cell.center_coords.y;
             vtx.z = 0.0;
             path_marker.points.push_back(vtx);
 
             // Also push back cubes
-            path_sph_mkr.pose.position.x = path_iter->cell.coords.x;
-            path_sph_mkr.pose.position.y = path_iter->cell.coords.y;
+            path_sph_mkr.pose.position.x = path_iter->cell.center_coords.x;
+            path_sph_mkr.pose.position.y = path_iter->cell.center_coords.y;
             path_sph_mkr.id = path_marker_id;
             path_marker_id++;
             path_arr.markers.push_back(path_sph_mkr);
@@ -308,8 +308,8 @@ int main(int argc, char** argv)
         for (auto node_iter = updated_nodes.begin(); node_iter != updated_nodes.end(); node_iter++)
         {
           path_marker_id++;
-          update_marker.pose.position.x = node_iter->cell.coords.x;
-          update_marker.pose.position.y = node_iter->cell.coords.y;
+          update_marker.pose.position.x = node_iter->cell.center_coords.x;
+          update_marker.pose.position.y = node_iter->cell.center_coords.y;
           update_marker.id = path_marker_id;
           path_arr.markers.push_back(update_marker);
         }
@@ -330,8 +330,8 @@ int main(int argc, char** argv)
             // Update total path
             total_path.push_back(path.at(path_counter));
             // Update Current Position Counter
-            curr_pos_marker.pose.position.x = path.at(path_counter).cell.coords.x;
-            curr_pos_marker.pose.position.y = path.at(path_counter).cell.coords.y;
+            curr_pos_marker.pose.position.x = path.at(path_counter).cell.center_coords.x;
+            curr_pos_marker.pose.position.y = path.at(path_counter).cell.center_coords.y;
         } else
         {
             // FINAL PATH. INFINITE MARKER DURATION

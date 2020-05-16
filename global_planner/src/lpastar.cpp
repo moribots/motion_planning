@@ -326,9 +326,9 @@ int main(int argc, char** argv)
         if (firstpass)
         {
             ros::Duration(1.0).sleep();
-            path_marker.lifetime = ros::Duration(1.5 / frequency);
-            path_sph_mkr.lifetime = ros::Duration(1.5 / frequency);
-            curr_pos_marker.lifetime = ros::Duration(1.5 / frequency);
+            path_marker.lifetime = ros::Duration(2.0 / frequency);
+            path_sph_mkr.lifetime = ros::Duration(2.0 / frequency);
+            curr_pos_marker.lifetime = ros::Duration(2.0 / frequency);
         }
 
         firstpass = false;

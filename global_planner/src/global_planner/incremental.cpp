@@ -404,7 +404,7 @@ namespace global
     		predecessor = *pred_iter;
     		predecessor.id = predecessor.cell.index.row_major;
 
-    		// Skip Occupied or Inflated Cells
+    		// Occupied or Inflated Cells
     		if (predecessor.cell.celltype == map::Occupied or\
     			predecessor.cell.celltype == map::Inflation)
     		{	    			

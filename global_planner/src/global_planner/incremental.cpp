@@ -76,13 +76,13 @@ namespace global
 	    		{	    			
 	    			// Push to priority queue for auto sort
 	    			// This is not actually stored anywhere, just useful in getting min gcost for n
-	    			predecessor.gcost += 1e12;
+	    			predecessor.gcost += heuristic(predecessor, n) + 1e12;
 	    		} else
 	    		// Free Cells
 	    		{
 	    			// Push to priority queue for auto sort
 	    			// This is not actually stored anywhere, just useful in getting min gcost for n
-	    			predecessor.gcost += 1.0;
+	    			predecessor.gcost += heuristic(predecessor, n);
 	    		}
 
 	    		pred_costs.push(predecessor);
@@ -98,9 +98,9 @@ namespace global
 	    }
     	// If it's on the open list, remove it
     	bool opened = open_list_v.find(n.id) != open_list_v.end();
-    	open_list_v.erase(n.id);
     	if (opened)
     	{
+    		open_list_v.erase(n.id);
     		// std::cout << "Erase, IDX: [" << n.cell.index.x << ", " << n.cell.index.y << "]"<< std::endl;
     		std::priority_queue <Node, std::vector<Node>, KeyComparator > temp_open_list;
 			while (!open_list.empty())
@@ -180,7 +180,7 @@ namespace global
 	void LPAstar::CalculateKeys(Node & n)
 	{
 		n.hcost = heuristic(n, goal_node);
-		n.key1 = std::min(n.gcost, n.rhs + n.hcost);
+		n.key1 = std::min(n.gcost, n.rhs) + n.hcost;
 		n.key2 = std::min(n.gcost, n.rhs);
 	}
 
@@ -314,20 +314,21 @@ namespace global
 		}
 
 		// Update Goal Node
-		UpdateCell(FakeGrid.at(goal_node.id));
+		// UpdateCell(FakeGrid.at(goal_node.id));
 
 		// Re-sort open-list
-		std::priority_queue <Node, std::vector<Node>, KeyComparator > temp_open_list;
-		while (!open_list.empty())
-		{
-			Node temp = open_list.top();
-			temp.hcost = heuristic(temp, goal_node);
-			CalculateKeys(temp);
-			temp_open_list.push(temp);
-			open_list.pop();
-		}
+		// std::priority_queue <Node, std::vector<Node>, KeyComparator > temp_open_list;
+		// while (!open_list.empty())
+		// {
+		// 	Node temp = open_list.top();
+		// 	temp.hcost = heuristic(temp, goal_node);
+		// 	CalculateKeys(temp);
+		// 	temp_open_list.push(temp);
+		// 	open_list.pop();
+		// 	FakeGrid.at(temp.id) = temp;
+		// }
 
-		open_list = temp_open_list;
+		// open_list = temp_open_list;
 
 		// Compute Shortest Path
 		ComputeShortestPath();
@@ -409,13 +410,13 @@ namespace global
     		{	    			
     			// Push to priority queue for auto sort
     			// This is not actually stored anywhere, just useful in getting min gcost for n
-    			predecessor.gcost += 1e12;
+    			predecessor.gcost += heuristic(predecessor, goal_node) + 1e12;
     		} else
     		// Free Cells
     		{
     			// Push to priority queue for auto sort
     			// This is not actually stored anywhere, just useful in getting min gcost for n
-    			predecessor.gcost += 1.0;
+    			predecessor.gcost += heuristic(predecessor, goal_node);
     		}
 
     		pred_costs.push(predecessor);

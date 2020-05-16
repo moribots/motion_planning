@@ -239,15 +239,15 @@ int main(int argc, char** argv)
 
     ros::Rate rate(frequency);
 
-    // Always taking the 1th cell to 'move forward'
-    unsigned int path_counter = 1;
+    // 0th cell
+    unsigned int path_counter = 0;
     std::vector<global::Node> updated_nodes;
 
     // For displaying final path at the end
     // Push back twice since out visualizer displays from the 1th element
     std::vector<global::Node> total_path;
     total_path.push_back(path.front());
-    total_path.push_back(path.front());
+    // total_path.push_back(path.front());
     // Update Current Position Counter
     curr_pos_marker.pose.position.x = path.at(path_counter).cell.center_coords.x;
     curr_pos_marker.pose.position.y = path.at(path_counter).cell.center_coords.y;
@@ -280,7 +280,7 @@ int main(int argc, char** argv)
         path_marker.points.clear();
         int path_marker_id = 0;
         // +1 to simulate move forward
-        for (auto path_iter = path.begin()+1; path_iter != path.end(); path_iter++)
+        for (auto path_iter = path.begin(); path_iter != path.end(); path_iter++)
         {
             // Add node as marker cell
             geometry_msgs::Point vtx;
@@ -319,10 +319,10 @@ int main(int argc, char** argv)
 
         // FAKE Update
         updated_nodes.clear();
-        if (path_counter < path.size() - 1 and planning)
+        if (path_counter < path.size() - 2 and planning)
         {
             // Update Grid
-            grid.update_grid(path.at(path_counter).cell, visibility);
+            grid.update_grid(path.at(path_counter + 1).cell, visibility);
             // D*Lite Update
             updated_nodes = dsl.SimulateUpdate(grid.return_fake_grid());
             // Return Path

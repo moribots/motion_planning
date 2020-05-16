@@ -417,6 +417,7 @@ namespace global
 	{
 		double x_dist = fabs(n1.cell.index.x - n2.cell.index.x);
 		double y_dist = fabs(n1.cell.index.y - n2.cell.index.y);
+		// return map::euclidean_distance(x_dist, y_dist);
 
 		double D1 = 1.0;
 		double D2 = sqrt(2.0);

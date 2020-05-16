@@ -319,9 +319,10 @@ int main(int argc, char** argv)
 
         // FAKE Update
         updated_nodes.clear();
-        if (path_counter < path.size() - 2 and planning)
+        if (path.size() > 1 and planning)
         {
             // Update Grid
+            ROS_INFO("UPDATING, PATH SIZE: %d", static_cast<int>(path.size()));
             grid.update_grid(path.at(path_counter + 1).cell, visibility);
             // D*Lite Update
             updated_nodes = dsl.SimulateUpdate(grid.return_fake_grid());

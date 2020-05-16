@@ -8,6 +8,7 @@ namespace global
 		int iterations= 0;
 		while (Continue(iterations))
 		{
+
 			iterations++;
 			// std::cout << "Iteration: " << iterations << std::endl;
 
@@ -57,6 +58,7 @@ namespace global
 	void LPAstar::UpdateCell(Node & n)
 	{
     	// Check this node isn't the start node
+    	// std::cout << "NODE EXAMINED at [" << n.cell.index.x << ", " << n.cell.index.y << "]" << "GCOST: " << n.gcost << std::endl;
 		if (n.id != start_node.id)
 		{
 			std::priority_queue <Node, std::vector<Node>, CostComparator > pred_costs;
@@ -84,6 +86,8 @@ namespace global
 	    			// This is not actually stored anywhere, just useful in getting min gcost for n
 	    			predecessor.gcost += heuristic(predecessor, n);
 	    		}
+
+	    		// std::cout << "NBR at [" << predecessor.cell.index.x << ", " << predecessor.cell.index.y << "]" << "GCOST: " << predecessor.gcost << std::endl;
 
 	    		pred_costs.push(predecessor);
 
@@ -128,6 +132,8 @@ namespace global
 
     	// Update n in FakeGrid
     	FakeGrid.at(n.id) = n;
+
+    	// std::cout << "-------------------------------" << std::endl;
 	}
 
 
@@ -207,8 +213,6 @@ namespace global
 		{
 			std::cout << "Goal found after " << iterations << " Iterations!" << std::endl;
 			// Reset Goal RHS
-			// goal_node.rhs =  1e12;
-			// goal_node.gcost = 1e12;
 			FakeGrid.at(goal_node.id) = goal_node;
 			return false;
 		}
@@ -218,19 +222,73 @@ namespace global
 	std::vector<Node> LPAstar::trace_path(const Node & final_node)
 	{
 		// First node in the vector is 'final node'
-		std::vector<Node> path{final_node};
+		path.clear();
+		path.push_back(final_node);
+
+		// std::cout << "START Node at [" << final_node.cell.index.x << ", " << final_node.cell.index.y << "]" << std::endl;
 
 		bool done = false;
 
 		while (!done)
 		{
-			// std::cout << "GOING FROM NODE: " << path.back().vertex.id << " TO: " << path.back().parent_id << std::endl;
-			Node next_node = FakeGrid.at(path.back().parent_id);
-			path.push_back(next_node);
-			if (next_node.parent_id == -1)
+			// std::cout << "GOING FROM NODE: " << path.back().id << " TO: " << path.back().parent_id << std::endl;
+			int next_node_id = path.back().parent_id;
+			int parent_id = FakeGrid.at(next_node_id).parent_id;
+			if (parent_id >= 0)
 			{
+				int grandparent_id = FakeGrid.at(parent_id).parent_id;
+				if (grandparent_id == next_node_id)
+					// TWO NODES ARE EACH OTHERS PARENTS.
+					// THIS USUALLY MEANS THAT THE GOAL IS INSIDE AN OBSTACLE
+				{
+					Node n1 = FakeGrid.at(next_node_id);
+					Node n2 = FakeGrid.at(parent_id);
+					// std::cout << "Two Nodes are each others' parents!" << std::endl;
+					// std::cout << "Node 1 at [" << n1.cell.index.x << ", " << n1.cell.index.y << "]" << std::endl;
+					// std::cout << "Node 2 at [" << n2.cell.index.x << ", " << n2.cell.index.y << "]" << std::endl;
+
+					if (n1.hcost < n2.hcost or rigid2d::almost_equal(n1.hcost, n2.hcost))
+					{
+						// The current node is closest to the goal, so return it as the final path
+						ROS_WARN("There is no valid path. The goal is in a blocked cell! \n Returning closest path.");
+						path.clear();
+						path.push_back(n1);
+						done = true;
+						break;
+					} else
+					// Go to next node, which will be the closest to the goal
+					{
+						path.push_back(FakeGrid.at(next_node_id));
+
+						done = true;
+						break;
+					}
+				}
+			}
+
+			if (next_node_id < 0 or next_node_id >= static_cast<int>(FakeGrid.size()))
+			{
+				std::cout << "The Path contains an invalid ID! Returning most complete path!" << std::endl;
 				done = true;
 				break;
+			} else 
+			{
+				Node next_node = FakeGrid.at(next_node_id);
+				if (next_node.cell.celltype == map::Occupied or next_node.cell.celltype == map::Inflation)
+				{
+					std::cout << "THE PATH CONTAINS AN OBSTACLE! Returning most complete path!" << std::endl;
+					done = true;
+					break;
+				}
+
+				path.push_back(next_node);
+				// std::cout << "NEXT Node at [" << next_node.cell.index.x << ", " << next_node.cell.index.y << "]" << std::endl;
+				if (next_node.parent_id == -1)
+				{
+					done = true;
+					break;
+				}
+
 			}
 		}
 
@@ -314,7 +372,12 @@ namespace global
 		}
 
 		// Update Goal Node
-		// UpdateCell(FakeGrid.at(goal_node.id));
+		UpdateCell(FakeGrid.at(goal_node.id));
+		goal_node = FakeGrid.at(goal_node.id);
+
+		// Update Start Node
+		UpdateCell(FakeGrid.at(start_node.id));
+		start_node = FakeGrid.at(start_node.id);
 
 		// Re-sort open-list
 		// std::priority_queue <Node, std::vector<Node>, KeyComparator > temp_open_list;
@@ -327,11 +390,19 @@ namespace global
 		// 	open_list.pop();
 		// 	FakeGrid.at(temp.id) = temp;
 		// }
-
 		// open_list = temp_open_list;
+
+		if (start_node.cell.celltype == map::Occupied or start_node.cell.celltype == map::Inflation)
+		{
+			// std::cout << "There is no valid path. Start node is occupied." << std::endl;
+			trace_path(goal_node);
+			// Return updated nodes
+			return updated_nodes;
+		}
 
 		// Compute Shortest Path
 		ComputeShortestPath();
+		
 		// Return updated nodes
 		return updated_nodes;
 	}
@@ -346,6 +417,8 @@ namespace global
 		// Find Start and Goal Nodes
 	    goal_node.cell = find_nearest_node(start, grid_, resolution);
 	    goal_node.id = goal_node.cell.index.row_major;
+	    // Set celltype to free
+	    goal_node.cell.celltype = map::Free;
 	    goal_node.hcost = 0.0;
 	    CalculateKeys(goal_node);
 
@@ -353,6 +426,8 @@ namespace global
 	    start_node.cell = find_nearest_node(goal, grid_, resolution);
 	    start_node.id = start_node.cell.index.row_major;
 	    start_node.hcost = heuristic(start_node, goal_node);
+	    // Set celltype to free
+	    start_node.cell.celltype = map::Free;
 	    start_node.rhs = 0.0;
 	    CalculateKeys(start_node);
 	    // std::cout << "START, IDX: [" << start_node.cell.index.x << ", " << start_node.cell.index.y << "]"<< std::endl;
@@ -386,12 +461,16 @@ namespace global
 
 	std::vector<Node> DSL::SimulateUpdate(const std::vector<Cell> & updated_grid)
 	{
+		std::vector<Node> updated_nodes;
+
 		// First, make sure g(goal [start in paper]!= inf, otherwise no path)
 		if (goal_node.gcost >= 1e12)
 		{
-			std::cout << "There is no valid path." << std::endl;
+			std::cout << "There is no valid path. Goal Gcost = inf." << std::endl;
 			trace_path(goal_node);
+			return updated_nodes;
 		}
+
 		// Change new goal node [start in D*Lite paper]
 		std::priority_queue <Node, std::vector<Node>, CostComparator > pred_costs;
 		// Find the predecessors of node n
@@ -411,6 +490,7 @@ namespace global
     			// Push to priority queue for auto sort
     			// This is not actually stored anywhere, just useful in getting min gcost for n
     			predecessor.gcost += heuristic(predecessor, goal_node) + 1e12;
+
     		} else
     		// Free Cells
     		{
@@ -424,10 +504,13 @@ namespace global
 
     	Node min_predecessor = pred_costs.top();
 
+
     	//Update Goal Node (start in D*L paper)
     	goal_node = FakeGrid.at(min_predecessor.id);
 		GRID = updated_grid;
-		std::vector<Node> updated_nodes = LPAstar::SimulateUpdate(updated_grid);
+
+
+		updated_nodes = LPAstar::SimulateUpdate(updated_grid);
 
 		return updated_nodes;
 	}

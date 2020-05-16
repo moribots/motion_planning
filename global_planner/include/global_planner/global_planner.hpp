@@ -8,6 +8,7 @@
 #include <map/prm.hpp>
 #include <vector>
 #include <eigen3/Eigen/Dense>
+#include <ros/ros.h>
 
 namespace global
 {

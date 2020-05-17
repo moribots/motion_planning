@@ -322,8 +322,6 @@ namespace global
 					{
 						// The current node is closest to the goal, so return it as the final path
 						valid_path = false;
-						// Remove first element of old path since we moved 1 up from here
-						old_path.erase(old_path.begin());
 						path = old_path;
 						break;
 					}
@@ -556,6 +554,10 @@ namespace global
 		if (valid_path)
 		{
 			std::reverse(p.begin(), p.end());
+		} else
+		{
+			// Remove first element of old path since we moved 1 up from here
+			path.erase(path.begin());
 		}
 		return p;
 	}

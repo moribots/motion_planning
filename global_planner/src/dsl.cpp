@@ -231,7 +231,7 @@ int main(int argc, char** argv)
 
     grid_map.info.origin = map_pose;
 
-    ROS_INFO("Planning using LPA*!");
+    ROS_INFO("Planning using D* Lite!");
     global::DSL dsl(obstacles_v, inflate);
     dsl.Initialize(start, goal, grid, resolution);
     dsl.ComputeShortestPath();
@@ -260,6 +260,8 @@ int main(int argc, char** argv)
 
     // For visualization purposes (See below)
     bool firstpass = true;
+
+    bool valid_path = dsl.return_valid();
 
     // Main While
     while (ros::ok())
@@ -319,15 +321,16 @@ int main(int argc, char** argv)
 
         // FAKE Update
         updated_nodes.clear();
-        if (path.size() > 1 and planning)
+        if (path.size() > 1 and planning and valid_path)
         {
             // Update Grid
-            ROS_INFO("UPDATING, PATH SIZE: %d", static_cast<int>(path.size()));
             grid.update_grid(path.at(path_counter + 1).cell, visibility);
             // D*Lite Update
             updated_nodes = dsl.SimulateUpdate(grid.return_fake_grid());
             // Return Path
             path = dsl.return_path();
+            // Check path validity (obstacles etc)
+            valid_path = dsl.return_valid();
             // Update total path
             total_path.push_back(path.at(path_counter));
             // Update Current Position Counter
@@ -339,6 +342,15 @@ int main(int argc, char** argv)
             path_marker.lifetime = ros::Duration();
             path_sph_mkr.lifetime = ros::Duration();
             curr_pos_marker.lifetime = ros::Duration();
+            if (!valid_path)
+            {
+                for (auto path_iter = path.begin(); path_iter != path.end(); path_iter++)
+                {
+                    total_path.push_back(*path_iter);
+                }
+                // So we don't enter this loop again
+                valid_path = true;
+            }
             path = total_path;
             planning = false;
         }

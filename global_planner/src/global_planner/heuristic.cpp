@@ -415,8 +415,8 @@ namespace global
 
 	double Astar::heuristic(const Node & n1, const Node & n2)
 	{
-		double x_dist = fabs(n1.cell.index.x - n2.cell.index.x);
-		double y_dist = fabs(n1.cell.index.y - n2.cell.index.y);
+		double x_dist = fabs(n1.cell.center_coords.x - n2.cell.center_coords.x);
+		double y_dist = fabs(n1.cell.center_coords.y - n2.cell.center_coords.y);
 		// return map::euclidean_distance(x_dist, y_dist);
 
 		double D1 = 1.0;

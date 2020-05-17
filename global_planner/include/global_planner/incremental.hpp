@@ -88,6 +88,9 @@ namespace global
         // \returns: nodes that had to be updated based on new information
         virtual std::vector<Node> SimulateUpdate(const std::vector<Cell> & updated_grid);
 
+        // \brief returns whether the current path is valid
+        bool return_valid();
+
     protected:
         std::vector<Node> path;
         // Fake grid with limited visibility for simulating increment
@@ -107,6 +110,10 @@ namespace global
 
         // Number of visible cells added per increment
         int viz_cells = 1;
+
+        double BIG_NUM = 10000.0;
+
+        bool valid_path = true;
     };
 
 

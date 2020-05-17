@@ -248,6 +248,9 @@ int main(int argc, char** argv)
     // For visualization purposes (See below)
     bool firstpass = true;
 
+    // Tells us if path contains obstacles
+    bool valid_path = true;
+
     // Main While
     while (ros::ok())
     {
@@ -262,7 +265,6 @@ int main(int argc, char** argv)
         grid_pub.publish(grid_map);
 
         // DRAW PATH
-        path = lpastar.return_path();
         path_arr.markers.clear();
         path_marker.points.clear();
         int path_marker_id = 0;
@@ -307,13 +309,16 @@ int main(int argc, char** argv)
 
         // FAKE Update
         updated_nodes.clear();
-        if (path_counter < path.size() - 1)
+        if (path_counter < path.size() - 1 and valid_path)
         {
           grid.update_grid(path.at(path_counter).cell, visibility);
           path_counter++;
           // ROS_INFO("UPDATE NUMBER: %d", path_counter);
           // LPA* Update
           updated_nodes = lpastar.SimulateUpdate(grid.return_fake_grid());
+          path = lpastar.return_path();
+          // Stop condition in case of obstacles
+          valid_path = lpastar.return_valid();
         } else
         {
           // FINAL PATH. INFINITE MARKER DURATION

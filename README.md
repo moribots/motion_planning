@@ -31,7 +31,7 @@ In progress:
 	- LPA* with Simulated Grid Updates [re-evaluated cells in orange]: `roslaunch global_planner incremental.launch lpa:=True`
 	<img src="global_planner/media/LPAstar.gif" alt="LPASTAR" width="300"/>
 
-	- D* Lite V2 on Grid [re-evaluated cells in orange]: `roslaunch global_planner incremental.launch`
+	- D* Lite on Grid [re-evaluated cells in orange]: `roslaunch global_planner incremental.launch`
 	<img src="global_planner/media/DstarLite.gif" alt="DSL" width="300"/>
 
 	- Potential Field with local minimum escape on Grid

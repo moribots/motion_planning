@@ -1,7 +1,7 @@
 #ifndef INCREMENTAL_INCLUDE_GUARD_HPP
 #define INCREMENTAL_INCLUDE_GUARD_HPP
 /// \file
-/// \brief incremental search library to encompass LPA* and D* Lite planners. I might add Incr. Phi* in the future.
+/// \brief Incremental search library to encompass LPA* and D* Lite planners. I might add Incr. Phi* in the future.
 
 #include "global_planner/heuristic.hpp"
 

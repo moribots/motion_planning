@@ -1,7 +1,4 @@
 - git:
-    local-name: motion_planning
-    uri: git@github.com:moribots/motion_planning.git
-- git:
     local-name: tb3
     uri: git@github.com:moribots/turtlebot3_from_scratch.git
 - git:

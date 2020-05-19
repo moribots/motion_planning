@@ -111,7 +111,7 @@ namespace global
 					closest_point = *v_iter;
 					shortest_dist = dist_E1;
 				}
-
+				// Possible to overwrite E1
 				if (dist_E2 < shortest_dist)
 				{
 					closest_point = vertices.at(i);
@@ -120,8 +120,8 @@ namespace global
 			}
 		}
 
-		std::cout << "CLOSEST POINT TO: [" << cur_pos.x << ", " << cur_pos.y << "] IS:  [" << closest_point.x << ", " <<
-					 closest_point.y << "]" << std::endl;
+		// std::cout << "CLOSEST POINT TO: [" << cur_pos.x << ", " << cur_pos.y << "] IS:  [" << closest_point.x << ", " <<
+		// 			 closest_point.y << "]" << std::endl;
 
 		return closest_point;
 	}

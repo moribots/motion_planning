@@ -44,13 +44,13 @@
     <param name="inflate" value="0.1"/>
     <param name="scale" value="10.0"/>
     <param name="resolution" value="0.1"/>
-    <param name="frequency" value="3.0"/>
+    <param name="frequency" value="100.0"/>
     <param name="visibility" value="5"/>
-    <param name="eta" value=".1"/>
-    <param name="ada" value="0.01"/>
-    <param name="zeta" value="2"/>
+    <param name="eta" value=".01"/>
+    <param name="ada" value=".01"/>
+    <param name="zeta" value=".01"/>
     <param name="d_thresh" value="10.0"/>
-    <param name="Q_thresh" value="0.1"/>
+    <param name="Q_thresh" value="0.2"/>
   </node>
 
 </launch>

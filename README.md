@@ -34,7 +34,9 @@ In progress:
 	- D* Lite on Grid [re-evaluated cells in orange]: `roslaunch global_planner incremental.launch`
 	<img src="global_planner/media/DstarLite.gif" alt="DSL" width="300"/>
 
-	- Potential Field with local minimum escape on Grid
+	- Naive Potential Field (Local Minimum Escape TBD): `roslaunch global_planner potential_field.launch`
+	<img src="global_planner/media/PF_NAIVE.gif" alt="PFN" width="300"/>
+
 * Local planner:
 	- Dynamic Window Approach
 * Trajectory Optimization:

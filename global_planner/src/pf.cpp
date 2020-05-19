@@ -21,6 +21,8 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Path.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include <functional>  // To use std::bind
 
@@ -83,6 +85,50 @@ int main(int argc, char** argv)
     // Path Publishers
     ros::Publisher path_pub = nh_.advertise<nav_msgs::Path>("robot_path", 1);
 
+    // Using path topic since it's already in rviz
+    ros::Publisher sg_pub = nh.advertise<visualization_msgs::MarkerArray>("path", 1);
+
+
+    // Init Markers
+    visualization_msgs::Marker s_marker;
+    s_marker.header.frame_id = frame_id;
+    s_marker.header.stamp = ros::Time::now();
+    s_marker.type = visualization_msgs::Marker::SPHERE;
+    s_marker.action = visualization_msgs::Marker::ADD;
+    s_marker.pose.position.z = 0;
+    s_marker.pose.position.x = start.x;
+    s_marker.pose.position.y = start.y;
+    s_marker.pose.orientation.x = 0.0;
+    s_marker.pose.orientation.y = 0.0;
+    s_marker.pose.orientation.z = 0.0;
+    s_marker.pose.orientation.w = 1.0;
+    s_marker.scale.x = 0.05;
+    s_marker.scale.y = 0.05;
+    s_marker.scale.z = 0.05;
+    s_marker.color.r = 0.5;
+    s_marker.color.g = 0.0;
+    s_marker.color.b = 0.5;
+    s_marker.color.a = 1.0;
+    s_marker.id = 0;
+    s_marker.lifetime = ros::Duration();
+
+    visualization_msgs::Marker g_marker = s_marker;
+    g_marker.pose.position.x = goal.x;
+    g_marker.pose.position.y = goal.y;
+    g_marker.color.r = 0.0;
+    g_marker.color.g = 1.0;
+    g_marker.color.b = 0.0;
+    g_marker.id = 1;
+
+    // Init Marker Array
+    visualization_msgs::MarkerArray sg_arr;
+
+    sg_arr.markers.clear();
+    sg_arr.markers.push_back(s_marker);
+    sg_arr.markers.push_back(g_marker);
+
+
+
     // 'obstacles' is a triple-nested list.
     // 1st level: obstacle (Obstacle), 2nd level: vertices (std::vector), 3rd level: coordinates (Vector2D)
     // std::vector<Obstacle>
@@ -134,7 +180,12 @@ int main(int argc, char** argv)
     global::PotentialField PF(obstacles_v, eta, ada, zeta, d_thresh, Q_thresh);
     bool terminate = PF.return_terminate();
 
+    // SLEEP so that I can prepare my screen recorder
+    ros::Duration(2.0).sleep();
+
     ros::Rate rate(frequency);
+
+    bool finito = false;
 
     // Main While
     while (ros::ok())
@@ -151,13 +202,16 @@ int main(int argc, char** argv)
           robot_poses.push_back(ps);
           terminate = PF.return_terminate();
           ROS_DEBUG("NEW POS: [%.2f, %.2f]", start.x, start.y);
-        } else
+        } else if (!finito)
         {
           ROS_INFO("GOAL REACHED.");
+          finito = true;
         }
 
         path.poses = robot_poses;
         path_pub.publish(path);
+
+        sg_pub.publish(sg_arr);
 
         
         rate.sleep();

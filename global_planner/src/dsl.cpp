@@ -131,8 +131,6 @@ int main(int argc, char** argv)
     visualization_msgs::Marker marker;
     marker.header.frame_id = frame_id;
     marker.header.stamp = ros::Time::now();
-    // marker.ns = "my_namespace";
-    // marker.id = 0;
     marker.type = visualization_msgs::Marker::LINE_STRIP;
     marker.action = visualization_msgs::Marker::ADD;
     marker.pose.position.z = 0;

@@ -129,6 +129,13 @@ namespace global
 
 		Vector2D new_pos(cur_pos.x - Descent_x * eta, cur_pos.y - Descent_y * eta);
 
+		double dist2goal = map::euclidean_distance(new_pos.x - goal.x, new_pos.y - goal.y);
+
+		if (dist2goal <= eta or rigid2d::almost_equal(dist2goal, eta))
+		{
+			terminate = true;
+		}
+
 		return new_pos;
 	}
 }

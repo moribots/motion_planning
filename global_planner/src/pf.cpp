@@ -48,9 +48,9 @@ int main(int argc, char** argv)
     std::vector<double> goal_vec{7.0, 26.0};
 
     // PF Parameters
-    double eta = 0.1;
-    double ada = 1000.0;
-    double zeta = 0.1;
+    double eta = 1.0;
+    double ada = .1;
+    double zeta = 10.0;
     double d_thresh = 2.0;
     double Q_thresh = 0.1;
 
@@ -69,6 +69,12 @@ int main(int argc, char** argv)
     nh_.getParam("scale", SCALE);
     nh_.getParam("start", start_vec);
     nh_.getParam("goal", goal_vec);
+    // PF Params
+    nh_.getParam("eta", eta);
+    nh_.getParam("ada", ada);
+    nh_.getParam("zeta", zeta);
+    nh_.getParam("d_thresh", d_thresh);
+    nh_.getParam("Q_thresh", Q_thresh);
 
     // START and GOAL
     rigid2d::Vector2D start(start_vec.at(0)/SCALE, start_vec.at(1)/SCALE);
@@ -145,6 +151,9 @@ int main(int argc, char** argv)
           robot_poses.push_back(ps);
           terminate = PF.return_terminate();
           ROS_DEBUG("NEW POS: [%.2f, %.2f]", start.x, start.y);
+        } else
+        {
+          ROS_INFO("GOAL REACHED.");
         }
 
         path.poses = robot_poses;

@@ -67,7 +67,7 @@ namespace global
 
 		double shortest_dist = 1e12;
 
-		Vector2D closest_point(1e12, 1e12);
+		Vector2D closest_point = vertices.front();
 
 		for (auto v_iter = vertices.begin(); v_iter < vertices.end(); v_iter++)
 		{
@@ -91,12 +91,37 @@ namespace global
 
 			map::ShortestDistance shrt = map::lineToPoint(E1, E2, P0);
 
-			if (std::abs(shrt.D) < shortest_dist)
+			if ((shrt.u >= 0.0 and shrt.u <= 1.0) or rigid2d::almost_equal(0.0, shrt.u) or rigid2d::almost_equal(1.0, shrt.u))
+			// cur_pos inside line segment
 			{
-				closest_point = shrt.point;
-				shortest_dist = std::abs(shrt.D);
+				if (std::abs(shrt.D) < shortest_dist)
+				{
+					closest_point = shrt.point;
+					shortest_dist = std::abs(shrt.D);
+				}
+			} else
+			// cur_pos outside line segment
+			{
+				// Find distance to both vertices and take minimum for evaluation with whole minimum
+				double dist_E1 = map::euclidean_distance(cur_pos.x - v_iter->x, cur_pos.y - v_iter->y);
+				double dist_E2 = map::euclidean_distance(cur_pos.x - vertices.at(i).x, cur_pos.y - vertices.at(i).y);
+
+				if (dist_E1 < shortest_dist)
+				{
+					closest_point = *v_iter;
+					shortest_dist = dist_E1;
+				}
+
+				if (dist_E2 < shortest_dist)
+				{
+					closest_point = vertices.at(i);
+					shortest_dist = dist_E2;
+				}
 			}
 		}
+
+		std::cout << "CLOSEST POINT TO: [" << cur_pos.x << ", " << cur_pos.y << "] IS:  [" << closest_point.x << ", " <<
+					 closest_point.y << "]" << std::endl;
 
 		return closest_point;
 	}
@@ -109,6 +134,9 @@ namespace global
 		{
 			norm_squared += std::pow(*iter, 2);
 		}
+
+		// Avoid division by zero
+		norm_squared += 1e-3;
 
 		return std::sqrt(norm_squared);
 	}

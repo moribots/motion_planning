@@ -151,6 +151,7 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 add_executable(astar src/astar.cpp)
 add_executable(lpastar src/lpastar.cpp)
 add_executable(dsl src/dsl.cpp)
+add_executable(pf src/pf.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -160,6 +161,7 @@ add_executable(dsl src/dsl.cpp)
 set_target_properties(astar PROPERTIES OUTPUT_NAME astar PREFIX "")
 set_target_properties(lpastar PROPERTIES OUTPUT_NAME lpastar PREFIX "")
 set_target_properties(dsl PROPERTIES OUTPUT_NAME dsl PREFIX "")
+set_target_properties(pf PROPERTIES OUTPUT_NAME pf PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -167,6 +169,7 @@ set_target_properties(dsl PROPERTIES OUTPUT_NAME dsl PREFIX "")
 add_dependencies(astar ${${PROJECT_NAME}_EXPORTED_TARGETS} ${Eigen3_EXPORTED_TARGETS} ${map_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(lpastar ${${PROJECT_NAME}_EXPORTED_TARGETS} ${Eigen3_EXPORTED_TARGETS} ${map_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(dsl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${Eigen3_EXPORTED_TARGETS} ${map_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(pf ${${PROJECT_NAME}_EXPORTED_TARGETS} ${Eigen3_EXPORTED_TARGETS} ${map_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(
@@ -199,6 +202,16 @@ ${PROJECT_NAME}
 ${catkin_LIBRARIES}
 )
 
+target_link_libraries(
+pf
+${map_LIBRARIES}
+${rigid2d_LIBRARIES}
+${nuslam_LIBRARIES}
+Eigen3::Eigen
+${PROJECT_NAME}
+${catkin_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
@@ -215,7 +228,7 @@ ${catkin_LIBRARIES}
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
-install(TARGETS astar lpastar dsl
+install(TARGETS astar lpastar dsl pf
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

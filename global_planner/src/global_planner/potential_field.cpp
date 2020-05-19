@@ -138,4 +138,9 @@ namespace global
 
 		return new_pos;
 	}
+
+	bool PotentialField::return_terminate()
+	{
+		return terminate;
+	}
 }

@@ -74,7 +74,7 @@ namespace map
 		int x_index = -1;
 		for (int i = 0; i < static_cast<int>(xcells.size()); i++)
 		{
-			if (cell.coords.x >= xcells.at(i) and cell.coords.x < xcells.at(i) + cell.resolution)
+			if (cell.center_coords.x >= xcells.at(i) and cell.center_coords.x < xcells.at(i) + cell.resolution)
 			{
 				x_index = i;
 			}
@@ -84,7 +84,7 @@ namespace map
 		int y_index = -1;
 		for (int j = 0; j < static_cast<int>(ycells.size()); j++)
 		{
-			if (cell.coords.y >= ycells.at(j) and cell.coords.y < ycells.at(j) + cell.resolution)
+			if (cell.center_coords.y >= ycells.at(j) and cell.center_coords.y < ycells.at(j) + cell.resolution)
 			{
 				y_index = j;
 			}

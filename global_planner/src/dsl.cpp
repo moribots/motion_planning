@@ -342,6 +342,7 @@ int main(int argc, char** argv)
             curr_pos_marker.lifetime = ros::Duration();
             if (!valid_path)
             {
+                ROS_WARN("INVALID PATH");
                 for (auto path_iter = path.begin(); path_iter != path.end(); path_iter++)
                 {
                     total_path.push_back(*path_iter);

@@ -96,10 +96,14 @@ namespace global
         // Fake grid with limited visibility for simulating increment
         std::vector<Node> FakeGrid;
 
+        // TODO: DELETE
         // Open list used for finding existing IDs
-        std::set<int> open_list_v;
-        // Open List
-        std::priority_queue <Node, std::vector<Node>, KeyComparator > open_list;
+        // std::set<int> open_list_v;
+        // // Open List
+        // std::priority_queue <Node, std::vector<Node>, KeyComparator > open_list;
+
+        // Open List. Uses ref wrapper for faster execution
+        std::vector<Node> open_list;   
 
         // For easy management/record keeping
         Node start_node;
@@ -111,7 +115,7 @@ namespace global
         // Number of visible cells added per increment
         int viz_cells = 1;
 
-        double BIG_NUM = 10000.0;
+        double BIG_NUM = std::numeric_limits<double>::infinity();
 
         bool valid_path = true;
     };

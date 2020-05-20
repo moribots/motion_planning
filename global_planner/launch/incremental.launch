@@ -46,7 +46,7 @@
     <param name="inflate" value="0.1"/>
     <param name="scale" value="10.0"/>
     <param name="resolution" value="0.1"/>
-    <param name="frequency" value="3.0"/>
+    <param name="frequency" value="6.0"/>
     <param name="visibility" value="5"/>
   </node>
 </group>

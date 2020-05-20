@@ -16,9 +16,11 @@ namespace global
 			// 	break;
 			// }
 
-			min = open_list.top();
-			open_list.pop();
-			open_list_v.erase(min.id);
+			// Get min node and erase from open list
+			min = open_list.at(0);
+			std::pop_heap(open_list.begin(), open_list.end(), KeyComparator());
+			open_list.back();
+			open_list.pop_back();
 
 			// Check if Overconsistent (start always satisfies this)
 			if (min.gcost > min.rhs)
@@ -96,24 +98,13 @@ namespace global
 	    	n.parent_id = min_predecessor.id;
 	    }
     	// If it's on the open list, remove it
-    	bool opened = open_list_v.find(n.id) != open_list_v.end();
-    	if (opened)
+    	auto cell_iter = std::find_if(open_list.begin(), open_list.end(), [&](const Node & node) {return node.id == n.id;});
+    	if (cell_iter != open_list.end())
     	{
-    		open_list_v.erase(n.id);
-    		// std::cout << "Erase, IDX: [" << n.cell.index.x << ", " << n.cell.index.y << "]"<< std::endl;
-    		std::priority_queue <Node, std::vector<Node>, KeyComparator > temp_open_list;
-			while (!open_list.empty())
-			{
-				Node temp = open_list.top();
-				// Don't include the current node since we are trying to erase it
-				if (temp.id != n.id)
-				{
-					temp_open_list.push(temp);
-				}
-				open_list.pop();
-			}
-
-			open_list = temp_open_list;
+    		// Delete using points
+    		open_list.erase(cell_iter);
+    		// Re-sort open list
+    		std::push_heap(open_list.begin(), open_list.end(), KeyComparator());
     	}
 
     	// If n is locally inconsistent (ie if n.gcost != n.rhs), add it to the open list with updated keys
@@ -121,8 +112,8 @@ namespace global
     	{
     		n.hcost = heuristic(n, goal_node);
     		CalculateKeys(n);
-    		open_list.push(n);
-    		open_list_v.insert(n.id);
+    		open_list.push_back(n);
+    		std::push_heap(open_list.begin(), open_list.end(), KeyComparator());
     	}
 
     	// Update n in FakeGrid
@@ -175,8 +166,8 @@ namespace global
 		}
 
 		// Populate Open List
-		open_list.push(start_node);
-		open_list_v.insert(start_node.id);
+		open_list.push_back(start_node);
+		std::make_heap(open_list.begin(), open_list.end(), KeyComparator());
 
 		// Cross-update FakeGrid with start and goal
 		FakeGrid.at(start_node.id) = start_node;
@@ -222,7 +213,12 @@ namespace global
 
 	bool LPAstar::Continue(const int & iterations)
 	{
-		Node top = open_list.top();
+		if(!std::is_heap(open_list.begin(), open_list.end(), KeyComparator()))
+		{
+			std::make_heap(open_list.begin(), open_list.end(), KeyComparator());
+		}
+
+		Node top = open_list.at(0);
 		CalculateKeys(top);
 		// Update Goal Node from Fake Grid
 		goal_node = FakeGrid.at(goal_node.id);
@@ -314,9 +310,9 @@ namespace global
 				{
 					Node n1 = next_node;
 					Node n2 = FakeGrid.at(parent_id);
-					// std::cout << "Two Nodes are each others' parents!" << std::endl;
-					// std::cout << "Node 1 at [" << n1.cell.index.x << ", " << n1.cell.index.y << "]" << std::endl;
-					// std::cout << "Node 2 at [" << n2.cell.index.x << ", " << n2.cell.index.y << "]" << std::endl;
+					std::cout << "Two Nodes are each others' parents!" << std::endl;
+					std::cout << "Node 1 at [" << n1.cell.index.x << ", " << n1.cell.index.y << "]" << std::endl;
+					std::cout << "Node 2 at [" << n2.cell.index.x << ", " << n2.cell.index.y << "]" << std::endl;
 
 					if (n1.hcost < n2.hcost or rigid2d::almost_equal(n1.hcost, n2.hcost))
 					{
@@ -487,8 +483,8 @@ namespace global
 		}
 
 		// Populate Open List
-		open_list.push(start_node);
-		open_list_v.insert(start_node.id);
+		open_list.push_back(start_node);
+		std::make_heap(open_list.begin(), open_list.end(), KeyComparator());
 
 		// Cross-update FakeGrid with start and goal
 		FakeGrid.at(start_node.id) = start_node;

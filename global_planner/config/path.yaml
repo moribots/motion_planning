@@ -2,4 +2,4 @@
 # MUST BE DOUBLES
 # Each iten is x,y
 start: [1.0,  1.0]
-goal:  [7.0, 26.0]
+goal:  [7.0, 46.0]

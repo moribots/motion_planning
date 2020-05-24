@@ -188,7 +188,7 @@ Visualization Manager:
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
-      Line Style: Lines
+      Line Style: Billboards
       Line Width: 0.029999999329447746
       Name: Path
       Offset:
@@ -267,5 +267,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1128
-  X: 168
+  X: 167
   Y: 0

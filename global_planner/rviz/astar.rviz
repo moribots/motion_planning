@@ -159,7 +159,7 @@ Visualization Manager:
       Marker Topic: /path
       Name: PATH
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -183,7 +183,7 @@ Visualization Manager:
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
-      Color: 25; 255; 0
+      Color: 214; 109; 13
       Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
@@ -231,16 +231,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 6.32717752456665
+      Distance: 6.352022171020508
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.6749932765960693
-        Y: 2.3146674633026123
-        Z: 0.14114488661289215
+        X: 1.7924532890319824
+        Y: 2.2708258628845215
+        Z: 0.14110127091407776
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -267,5 +267,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1128
-  X: 169
+  X: 168
   Y: 0

@@ -47,10 +47,10 @@
     <param name="frequency" value="100.0"/>
     <param name="visibility" value="5"/>
     <param name="eta" value=".01"/>
-    <param name="ada" value=".01"/>
-    <param name="zeta" value=".01"/>
-    <param name="d_thresh" value="10.0"/>
-    <param name="Q_thresh" value="0.2"/>
+    <param name="ada" value=".1"/>
+    <param name="zeta" value=".9"/>
+    <param name="d_thresh" value="5.0"/>
+    <param name="Q_thresh" value="0.15"/>
   </node>
 
 </launch>

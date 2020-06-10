@@ -3,23 +3,20 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
+from matplotlib import animation
 import copy
+import time
+import rospy
+from control.msg import Waypoint
 
 np.random.seed(0)
-"""
-double normalizedAngle = angle - (ceil((angle + np.pi)/(2*np.pi))-1)*2*np.pi;  // (-Pi;Pi]:
-double normalizedAngle = angle - (ceil((angle + 180)/360)-1)*360;           // (-180;180]:
-
-double normalizedAngle = angle - (floor((angle + np.pi)/(2*np.pi)))*2*np.pi;  // [-Pi;Pi):
-double normalizedAngle = angle - (floor((angle + 180)/360))*360;           // [-180;180):
-"""
 
 # rad/s
 CONTROL_LIMIT = 6.0
 
 
-def dynamics(x, u):
-    """ Diff Drive Dynamics
+def dd_dynamics(x, u):
+    """ Diff Drive dd_dynamics
     """
     # wheel radius
     radius = 0.033
@@ -30,16 +27,22 @@ def dynamics(x, u):
                      (radius / wheel_base) * (u[1, :] - u[0, :])])
 
 
+def unicycle_dynamics(x, u):
+    return np.array(
+        [np.cos(x[2, :]) * u[0, :],
+         np.sin(x[2, :]) * u[0, :], u[1, :]])
+
+
 def rk4(x0, u, dt):
     """ Returns position updates for
         given velocity commands after one timestep
         using a Runge-Kutta 4 integrator
     """
     # update calculated here
-    k1 = dt * dynamics(x0, u)
-    k2 = dt * dynamics(x0 + k1 / 2, u)
-    k3 = dt * dynamics(x0 + k2 / 2, u)
-    k4 = dt * dynamics(x0 + k3, u)
+    k1 = dt * dd_dynamics(x0, u)
+    k2 = dt * dd_dynamics(x0 + k1 / 2, u)
+    k3 = dt * dd_dynamics(x0 + k2 / 2, u)
+    k4 = dt * dd_dynamics(x0 + k3, u)
     # initial plus update
     xnew = x0 + (1.0 / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
     xnew[2, :] = xnew[2, :] - (np.ceil(
@@ -47,8 +50,12 @@ def rk4(x0, u, dt):
     return xnew
 
 
+def euler(x0, u, dt):
+    return x0 + dt * unicycle_dynamics(x0, u)
+
+
 class MPPI:
-    def __init__(self, model=rk4, horizon=100, samples=5, dt=0.01):
+    def __init__(self, model=rk4, horizon=100, samples=5):
         self.path = []
         self.horizon = horizon
         self.samples = samples
@@ -57,17 +64,12 @@ class MPPI:
         self.model = model
         self.dt = 1.0 / float(horizon)
         # Cost during trajectory
-        self.Q = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 0.0]])
+        self.Q = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 1.0]])
         # Cost of controls
-        self.R = np.array([[0.1, 0.0], [0.0, 0.1]])
+        self.R = np.array([[1.0, 0.0], [0.0, 1.0]])
         # Termination cost
         self.P1 = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 1e3]])
-
-    def get_cost(self, state, desired_state, u, lam, sig, eps):
-        # return euclid dist
-        return (
-            (state - desired_state).T.dot(self.Q).dot(state - desired_state) +
-            u.T.dot(self.R).dot(u)) + lam * u.dot(sig).dot(eps)
+        self.fin_time = [0]  # time stamp of the position/control
 
     def solve_path(self,
                    start,
@@ -76,9 +78,10 @@ class MPPI:
                    lam=0.01):
         state = start
         self.path = np.array([state])
-        uvec = self.uvec_init
+        uvec = copy.deepcopy(self.uvec_init)
         print("STARTING")
         i = 0
+        tstart = time.time()
         while i < 10000 and np.linalg.norm(state[:2] - goal[:2]) > 0.05:
             # print("iter: {}".format(i))
             i += 1
@@ -87,17 +90,17 @@ class MPPI:
             state = self.perform_action(state, uvec)
             self.path = np.concatenate((self.path, np.array([state])))
             self.uvec = np.concatenate((self.uvec, np.array([uvec[:, 0]])))
+            self.fin_time.append(self.fin_time[-1] + self.dt)
             # Shift controls for Receding Horizon MPPI
-            # uvec[:, :self.horizon - 1] = uvec[:, 1:self.horizon]
-            # uvec[:, -1] = self.uvec_init[:, -1]
-            # uvec = np.concatenate(
-            #     [uvec[:, 1:],
-            #      np.array(self.uvec_init[:, 0]).reshape(2, 1)],
-            #     axis=1)
+            uvec[:, :-1] = uvec[:, 1:]
+            uvec[:, -1] = self.uvec_init[:, 0]
 
             if i % 200 == 0:
                 print("Iteration: {} \t State: {}".format(i, state))
-        print("Finished after {} iterations. Final State: {}".format(i, state))
+        t_elapsed = time.time() - tstart
+        print(
+            "Finished after {} iterations. Final State: {}, Time Taken: {}, Time Per Iter: {}"
+            .format(i, state, t_elapsed, t_elapsed / float(i)))
 
     def get_cost2go(self, state, uvec, goal, lam, sig):
         cost2go = []
@@ -111,60 +114,123 @@ class MPPI:
         for t in range(self.horizon):
             # statedim x N, where N is num of samples
             # Sample N states forward in time for N costs to go
+            # eps.append(
+            #     np.random.multivariate_normal([0.0, 0.0],
+            #                                   sig,
+            #                                   size=(self.samples)).T)
             eps.append(
-                np.random.multivariate_normal([0.0, 0.0],
-                                              sig,
-                                              size=(self.samples)).T)
-            costs = []
+                np.random.normal(0,
+                                 sig[0, 0],
+                                 size=(uvec.shape[0], self.samples)))
             u_samp = np.tile(uvec[:, t], (self.samples, 1)).T
             st = self.model(states, u_samp + eps[-1], self.dt)
+
+            # Trajectory Cost
+            costs = np.zeros(self.samples)
             for s in range(self.samples):
                 states[:, s] = st[:, s]
-
-                if t == self.horizon - 1:
-                    # ADD TERMINAL COST
-                    cst = self.get_cost(st[:, s], goal, uvec[:, t], lam, sig,
-                                        eps[-1][:, s])
-                    mxt = (st[:, s] - goal).T.dot(self.P1).dot(st[:, s] - goal)
-                    costs.append(cst + mxt)
-                else:
-                    costs.append(
-                        self.get_cost(st[:, s], goal, uvec[:, t], lam, sig,
-                                      eps[-1][:, s]))
+                costs[s] = self.get_cost(st[:, s], goal, uvec[:, t], lam, sig,
+                                         eps[-1][:, s])
 
             cost2go.append(costs)
+
+        costs = np.zeros(self.samples)
+        for s in range(self.samples):
+            # ADD TERMINAL COST
+            cst = self.get_cost(st[:, s], goal, uvec[:, t], lam, sig,
+                                eps[-1][:, s])
+            mxt = (st[:, s] - goal).T.dot(self.P1).dot(st[:, s] - goal)
+            costs[s] = mxt
+
+        cost2go.append(costs)
         # get value function over time as cost2go at each timestep
         # (first reversed and summed)
-        value_fcn = np.cumsum(cost2go[::-1], 0)[::-1, :]
+        # value_fcn = np.cumsum(cost2go[::-1], 0)[::-1, :]
+        value_fcn = np.flip(np.cumsum(np.flip(cost2go, 0), axis=0), 0)
 
         return value_fcn, eps
+
+    def get_cost(self, state, desired_state, u, lam, sig, eps):
+        # return euclid dist
+        return (
+            (state - desired_state).T.dot(self.Q).dot(state - desired_state) +
+            u.T.dot(self.R).dot(u)) + lam * u.dot(sig).dot(eps)
 
     def update_action(self, uvec, eps, value_fcn, sig, lam):
         for t in range(self.horizon):
             # First, subtract the min cost out from each sample
             value_fcn[t] -= np.amin(value_fcn[t])
 
-            # qstar = self.get_qstar(value_fcn[t], lam, uvec[:, t], eps[t], sig)
-            # q = self.get_q(eps[t], sig)
-
             # Get weight for optimal action update
             # This tells us the usefulness of each eps sample in [t]
             omg = np.exp(-value_fcn[t] / lam) + 1e-8
             omg /= np.sum(omg)
+            uvec[:, t] += np.dot(eps[t], omg)
 
-            action_mod = np.dot(omg.T, eps[t].T)
-            # print(action_mod)
-            uvec[:, t] += action_mod
-
-            # filter controls
-            uvec = savgol_filter(uvec, self.horizon - 1, 3, axis=1)
-            # print(uvec[:, 0])
+        # filter controls
+        uvec = savgol_filter(uvec, self.horizon - 1, 3, axis=1)
         return uvec
 
     def perform_action(self, state, uvec):
         state = np.tile(state, (2, 1)).T
         u = np.tile(uvec[:, 0], (2, 1)).T
         return self.model(state, u, self.dt)[:, 0]
+
+    def get_animation(self):
+        print("generating animation...")
+        path = np.array(self.path)  # final path of robot
+        control = np.array(self.uvec)  # controls used to generate the path
+        fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(10, 10))
+        fig.suptitle("MPPI Control Results", fontsize=16)
+        ax1.set(xlabel="X position (m)", ylabel="Y position (m)")
+        ax1.set_xlim(np.amin(path[:, 0]) - 0.1, np.amax(path[:, 0]) + 0.1)
+        ax1.set_ylim(np.amin(path[:, 1]) - 0.1, np.amax(path[:, 1]) + 0.1)
+        line11, = ax1.plot([], [])
+        ax2.set(xlabel="Time (s)", ylabel="State (m or rad)")
+        ax2.set_xlim(0, self.fin_time[-1])  # fin_time is my time vector
+        ax2.set_ylim(np.amin(path) - 0.1, np.amax(path) + 0.1)
+        ax2.legend(["x", "y", r"$\theta$"])
+        line21, = ax2.plot([], [])
+        line22, = ax2.plot([], [])
+        line23, = ax2.plot([], [])
+        ax3.set(xlabel="Time (s)", ylabel="Velocity (m/s or rad/s)")
+        ax3.set_xlim(0, self.fin_time[-1])
+        ax3.set_ylim(np.amin(control) - 0.1, np.amax(control) + 0.1)
+        line31, = ax3.plot([], [])
+        line32, = ax3.plot([], [])
+        ax3.legend(["v", r"$\omega$"])
+
+        def animate(i):
+            ax1.clear()
+            ax1.set(xlabel="X position (m)", ylabel="Y position (m)")
+            ax1.set_xlim(np.amin(path[:, 0]) - 0.1, np.amax(path[:, 0]) + 0.1)
+            ax1.set_ylim(np.amin(path[:, 1]) - 0.1, np.amax(path[:, 1]) + 0.1)
+            ax1.arrow(x=path[i, 0],
+                      y=path[i, 1],
+                      dx=0.025 * np.cos(path[i, 2]),
+                      dy=0.025 * np.sin(path[i, 2]),
+                      head_width=0.03,
+                      length_includes_head=True,
+                      overhang=0.1,
+                      facecolor="black",
+                      zorder=0)
+            line11, = ax1.plot([], [])
+            line11.set_data(path[0:i, 0], path[0:i, 1])
+            line21.set_data(self.fin_time[0:i], path[0:i, 0])
+            line22.set_data(self.fin_time[0:i], path[0:i, 1])
+            line23.set_data(self.fin_time[0:i], path[0:i, 2])
+            line31.set_data(self.fin_time[0:i], control[0:i, 0])
+            line32.set_data(self.fin_time[0:i], control[0:i, 1])
+            return line11, line21, line22, line23, line31, line32
+
+        # may want to change the interval to match your dt, the number is in milliseconds
+        anim = animation.FuncAnimation(fig,
+                                       animate,
+                                       frames=len(self.fin_time),
+                                       interval=10,
+                                       repeat=False)
+        print("saving animation as mp4...this might take a while...")
+        anim.save(filename='sim.mp4', fps=30, dpi=300)
 
 
 def plot_path(path, start, goal):
@@ -190,18 +256,16 @@ def plot_controls(uvec):
     plt.legend()
     plt.show()
 
+class Controller:
+    def __init__(self):
+        self.mppi = MPPI()
+        self.sub_cmd = rospy.Subscriber('waypoints', Waypoint, self.wpt_cb)
+
 
 def main():
-    mppi = MPPI()
-    start = np.array([0.0, 0.0, np.pi / 2.0])
-    goal = np.array([1.0, 0.0, np.pi / 2.0])
-    mppi.solve_path(start, goal)
-
-    plot_path(mppi.path, start, goal)
-
-    # print(mppi.uvec)
-
-    plot_controls(mppi.uvec)
+    """ The main() function. """
+    controller = Controller()
+    rospy.spin()
 
 
 if __name__ == '__main__':

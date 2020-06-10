@@ -12,6 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  global_planner
   map	
   message_generation
   message_runtime
@@ -116,8 +117,8 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 INCLUDE_DIRS include
-LIBRARIES ${PROJECT_NAME} map rigid2d nuslam
-CATKIN_DEPENDS map message_generation message_runtime rigid2d roscpp nuslam visualization_msgs
+LIBRARIES ${PROJECT_NAME} global_planner map rigid2d nuslam
+CATKIN_DEPENDS global_planner map message_generation message_runtime rigid2d roscpp nuslam visualization_msgs
 #  DEPENDS system_lib
 )
 

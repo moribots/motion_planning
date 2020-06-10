@@ -1,0 +1,208 @@
+#!/usr/bin/env python
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import savgol_filter
+import copy
+
+np.random.seed(0)
+"""
+double normalizedAngle = angle - (ceil((angle + np.pi)/(2*np.pi))-1)*2*np.pi;  // (-Pi;Pi]:
+double normalizedAngle = angle - (ceil((angle + 180)/360)-1)*360;           // (-180;180]:
+
+double normalizedAngle = angle - (floor((angle + np.pi)/(2*np.pi)))*2*np.pi;  // [-Pi;Pi):
+double normalizedAngle = angle - (floor((angle + 180)/360))*360;           // [-180;180):
+"""
+
+# rad/s
+CONTROL_LIMIT = 6.0
+
+
+def dynamics(x, u):
+    """ Diff Drive Dynamics
+    """
+    # wheel radius
+    radius = 0.033
+    # wheel base
+    wheel_base = 0.16
+    return np.array([(radius / 2.0) * np.cos(x[2, :]) * (u[0, :] + u[1, :]),
+                     (radius / 2.0) * np.sin(x[2, :]) * (u[0, :] + u[1, :]),
+                     (radius / wheel_base) * (u[1, :] - u[0, :])])
+
+
+def rk4(x0, u, dt):
+    """ Returns position updates for
+        given velocity commands after one timestep
+        using a Runge-Kutta 4 integrator
+    """
+    # update calculated here
+    k1 = dt * dynamics(x0, u)
+    k2 = dt * dynamics(x0 + k1 / 2, u)
+    k3 = dt * dynamics(x0 + k2 / 2, u)
+    k4 = dt * dynamics(x0 + k3, u)
+    # initial plus update
+    xnew = x0 + (1.0 / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+    xnew[2, :] = xnew[2, :] - (np.ceil(
+        (xnew[2, :] + np.pi) / (2.0 * np.pi)) - 1.0) * 2.0 * np.pi
+    return xnew
+
+
+class MPPI:
+    def __init__(self, model=rk4, horizon=100, samples=5, dt=0.01):
+        self.path = []
+        self.horizon = horizon
+        self.samples = samples
+        self.uvec_init = np.zeros((2, horizon))
+        self.uvec = np.array([self.uvec_init[:, 0]])
+        self.model = model
+        self.dt = 1.0 / float(horizon)
+        # Cost during trajectory
+        self.Q = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 0.0]])
+        # Cost of controls
+        self.R = np.array([[0.1, 0.0], [0.0, 0.1]])
+        # Termination cost
+        self.P1 = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 1e3]])
+
+    def get_cost(self, state, desired_state, u, lam, sig, eps):
+        # return euclid dist
+        return (
+            (state - desired_state).T.dot(self.Q).dot(state - desired_state) +
+            u.T.dot(self.R).dot(u)) + lam * u.dot(sig).dot(eps)
+
+    def solve_path(self,
+                   start,
+                   goal,
+                   sig=np.array([[0.9, 0.0], [0.0, 0.9]]),
+                   lam=0.01):
+        state = start
+        self.path = np.array([state])
+        uvec = self.uvec_init
+        print("STARTING")
+        i = 0
+        while i < 10000 and np.linalg.norm(state[:2] - goal[:2]) > 0.05:
+            # print("iter: {}".format(i))
+            i += 1
+            value_fcn, eps = self.get_cost2go(state, uvec, goal, lam, sig)
+            uvec = self.update_action(uvec, eps, value_fcn, sig, lam)
+            state = self.perform_action(state, uvec)
+            self.path = np.concatenate((self.path, np.array([state])))
+            self.uvec = np.concatenate((self.uvec, np.array([uvec[:, 0]])))
+            # Shift controls for Receding Horizon MPPI
+            # uvec[:, :self.horizon - 1] = uvec[:, 1:self.horizon]
+            # uvec[:, -1] = self.uvec_init[:, -1]
+            # uvec = np.concatenate(
+            #     [uvec[:, 1:],
+            #      np.array(self.uvec_init[:, 0]).reshape(2, 1)],
+            #     axis=1)
+
+            if i % 200 == 0:
+                print("Iteration: {} \t State: {}".format(i, state))
+        print("Finished after {} iterations. Final State: {}".format(i, state))
+
+    def get_cost2go(self, state, uvec, goal, lam, sig):
+        cost2go = []
+        # Dim: statedim x N
+        # State at current timestep
+        states = np.tile(state, (self.samples, 1)).T
+
+        eps = []
+        # Each timed eps contains one disturbance for each timestep
+        # so eps is t x udim x N, where N is num of samples
+        for t in range(self.horizon):
+            # statedim x N, where N is num of samples
+            # Sample N states forward in time for N costs to go
+            eps.append(
+                np.random.multivariate_normal([0.0, 0.0],
+                                              sig,
+                                              size=(self.samples)).T)
+            costs = []
+            u_samp = np.tile(uvec[:, t], (self.samples, 1)).T
+            st = self.model(states, u_samp + eps[-1], self.dt)
+            for s in range(self.samples):
+                states[:, s] = st[:, s]
+
+                if t == self.horizon - 1:
+                    # ADD TERMINAL COST
+                    cst = self.get_cost(st[:, s], goal, uvec[:, t], lam, sig,
+                                        eps[-1][:, s])
+                    mxt = (st[:, s] - goal).T.dot(self.P1).dot(st[:, s] - goal)
+                    costs.append(cst + mxt)
+                else:
+                    costs.append(
+                        self.get_cost(st[:, s], goal, uvec[:, t], lam, sig,
+                                      eps[-1][:, s]))
+
+            cost2go.append(costs)
+        # get value function over time as cost2go at each timestep
+        # (first reversed and summed)
+        value_fcn = np.cumsum(cost2go[::-1], 0)[::-1, :]
+
+        return value_fcn, eps
+
+    def update_action(self, uvec, eps, value_fcn, sig, lam):
+        for t in range(self.horizon):
+            # First, subtract the min cost out from each sample
+            value_fcn[t] -= np.amin(value_fcn[t])
+
+            # qstar = self.get_qstar(value_fcn[t], lam, uvec[:, t], eps[t], sig)
+            # q = self.get_q(eps[t], sig)
+
+            # Get weight for optimal action update
+            # This tells us the usefulness of each eps sample in [t]
+            omg = np.exp(-value_fcn[t] / lam) + 1e-8
+            omg /= np.sum(omg)
+
+            action_mod = np.dot(omg.T, eps[t].T)
+            # print(action_mod)
+            uvec[:, t] += action_mod
+
+            # filter controls
+            uvec = savgol_filter(uvec, self.horizon - 1, 3, axis=1)
+            # print(uvec[:, 0])
+        return uvec
+
+    def perform_action(self, state, uvec):
+        state = np.tile(state, (2, 1)).T
+        u = np.tile(uvec[:, 0], (2, 1)).T
+        return self.model(state, u, self.dt)[:, 0]
+
+
+def plot_path(path, start, goal):
+    plt.figure()
+    plt.plot(path[:, 0], path[:, 1], label="Path")
+    plt.plot(start[0], start[1], marker='o', markersize=3, label="Start")
+    plt.plot(goal[0], goal[1], marker='o', markersize=3, label="Goal")
+    plt.legend()
+    plt.show()
+
+    plt.figure()
+    plt.plot(path[:, 0], label="x")
+    plt.plot(path[:, 1], label="y")
+    plt.plot(path[:, 2], label="theta")
+    plt.legend()
+    plt.show()
+
+
+def plot_controls(uvec):
+    plt.figure()
+    plt.plot(uvec[:, 0], label="u1")
+    plt.plot(uvec[:, 1], label="u2")
+    plt.legend()
+    plt.show()
+
+
+def main():
+    mppi = MPPI()
+    start = np.array([0.0, 0.0, np.pi / 2.0])
+    goal = np.array([1.0, 0.0, np.pi / 2.0])
+    mppi.solve_path(start, goal)
+
+    plot_path(mppi.path, start, goal)
+
+    # print(mppi.uvec)
+
+    plot_controls(mppi.uvec)
+
+
+if __name__ == '__main__':
+    main()

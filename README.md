@@ -45,5 +45,5 @@ In progress:
 	- Dynamic Window Approach -->
 * Trajectory Optimization:
 	- Model Predictive Path Integral Control on a parallel parking task (notice heading):
-	<img src="control/media/mppi_plt.gif" alt="PFN" width="300"/>
+	<img src="control/media/mppi_plt.gif" alt="PFN" width="500"/>
 

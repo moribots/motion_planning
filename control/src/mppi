@@ -71,15 +71,15 @@ class MPPI:
         # Termination cost
         self.P1 = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 1e3]])
         self.thresh = thresh
-        self.initialize()
         self.start = np.array([0.0, 0.0, 0.0])
         self.goal = np.array([0.0, 0.0, 0.0])
+        self.initialize()
 
     def initialize(self):
         self.fin_time = [0]  # time stamp of the position/control
         self.latest_uvec = copy.deepcopy(self.uvec_init)
         self.uvec = np.array([self.uvec_init[:, 0]])
-        self.path = []
+        self.path = np.array([self.start])
 
     def get_path(self,
                  state,

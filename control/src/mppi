@@ -8,6 +8,8 @@ import copy
 import time
 import rospy
 from control.msg import Waypoint
+from nav_msgs.msg import Odometry
+import tf
 
 np.random.seed(0)
 
@@ -55,12 +57,10 @@ def euler(x0, u, dt):
 
 
 class MPPI:
-    def __init__(self, model=rk4, horizon=100, samples=5):
-        self.path = []
+    def __init__(self, model=rk4, horizon=100, samples=5, thresh=0.05):
         self.horizon = horizon
         self.samples = samples
         self.uvec_init = np.zeros((2, horizon))
-        self.uvec = np.array([self.uvec_init[:, 0]])
         self.model = model
         self.dt = 1.0 / float(horizon)
         # Cost during trajectory
@@ -69,38 +69,59 @@ class MPPI:
         self.R = np.array([[1.0, 0.0], [0.0, 1.0]])
         # Termination cost
         self.P1 = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 1e3]])
+        self.thresh = thresh
+        self.initialize()
+        self.start = np.array([0.0, 0.0, 0.0])
+        self.goal = np.array([0.0, 0.0, 0.0])
+
+    def initialize(self):
         self.fin_time = [0]  # time stamp of the position/control
+        self.latest_uvec = copy.deepcopy(self.uvec_init)
+        self.uvec = np.array([self.uvec_init[:, 0]])
+        self.path = []
+
+    def get_path(self,
+                 state,
+                 goal,
+                 sig=np.array([[0.9, 0.0], [0.0, 0.9]]),
+                 lam=0.01):
+        value_fcn, eps = self.get_cost2go(state, self.latest_uvec, goal, lam,
+                                          sig)
+        self.latest_uvec = self.update_action(self.latest_uvec, eps, value_fcn,
+                                              sig, lam)
+        state = self.perform_action(state, self.latest_uvec)
+        self.path = np.concatenate((self.path, np.array([state])))
+        self.uvec = np.concatenate(
+            (self.uvec, np.array([self.latest_uvec[:, 0]])))
+        self.fin_time.append(self.fin_time[-1] + self.dt)
+        # Shift controls for Receding Horizon MPPI
+        self.latest_uvec[:, :-1] = self.latest_uvec[:, 1:]
+        self.latest_uvec[:, -1] = self.uvec_init[:, 0]
+        return state
 
     def solve_path(self,
                    start,
                    goal,
                    sig=np.array([[0.9, 0.0], [0.0, 0.9]]),
                    lam=0.01):
+        self.start = start
+        self.goal = goal
         state = start
         self.path = np.array([state])
-        uvec = copy.deepcopy(self.uvec_init)
+        self.latest_uvec = copy.deepcopy(self.uvec_init)
         print("STARTING")
         i = 0
         tstart = time.time()
-        while i < 10000 and np.linalg.norm(state[:2] - goal[:2]) > 0.05:
-            # print("iter: {}".format(i))
+        while np.linalg.norm(state[:2] - goal[:2]) > self.thresh:
             i += 1
-            value_fcn, eps = self.get_cost2go(state, uvec, goal, lam, sig)
-            uvec = self.update_action(uvec, eps, value_fcn, sig, lam)
-            state = self.perform_action(state, uvec)
-            self.path = np.concatenate((self.path, np.array([state])))
-            self.uvec = np.concatenate((self.uvec, np.array([uvec[:, 0]])))
-            self.fin_time.append(self.fin_time[-1] + self.dt)
-            # Shift controls for Receding Horizon MPPI
-            uvec[:, :-1] = uvec[:, 1:]
-            uvec[:, -1] = self.uvec_init[:, 0]
-
+            state = self.get_path(state, goal, sig, lam)
             if i % 200 == 0:
                 print("Iteration: {} \t State: {}".format(i, state))
         t_elapsed = time.time() - tstart
         print(
             "Finished after {} iterations. Final State: {}, Time Taken: {}, Time Per Iter: {}"
             .format(i, state, t_elapsed, t_elapsed / float(i)))
+        self.initialize()
 
     def get_cost2go(self, state, uvec, goal, lam, sig):
         cost2go = []
@@ -256,16 +277,39 @@ def plot_controls(uvec):
     plt.legend()
     plt.show()
 
+
 class Controller:
     def __init__(self):
         self.mppi = MPPI()
         self.sub_cmd = rospy.Subscriber('waypoints', Waypoint, self.wpt_cb)
+        self.sub_pos = rospy.Subscriber('pose', Odometry, self.pos_cb)
+
+    def wpt_cb(self, wpt):
+        try:
+            self.mppi.initialize()
+            self.mppi.goal = np.array([wpt[0], wpt[1], wpt[2]])
+        except rospy.ROSInterruptException:
+            pass
+
+    def pos_cb(self, odom):
+        try:
+            x = odom.pose.pose.position.x
+            y = odom.pose.pose.position.y
+            theta = tf.transformations.euler_from_quaternion(
+                odom.pose.pose.orientation)[2]
+            self.mppi.start = np.array([x, y, theta])
+        except rospy.ROSInterruptException:
+            pass
 
 
 def main():
-    """ The main() function. """
+    # """ The main() function. """
     controller = Controller()
     rospy.spin()
+    # mppi = MPPI()
+    # start = np.array([0.0, 0.0, np.pi / 2.0])
+    # goal = np.array([1.0, 0.0, np.pi / 2.0])
+    # mppi.solve_path(start, goal)
 
 
 if __name__ == '__main__':

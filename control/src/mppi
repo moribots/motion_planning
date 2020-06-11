@@ -69,7 +69,7 @@ class MPPI:
         # Cost of controls
         self.R = np.array([[1.0, 0.0], [0.0, 1.0]])
         # Termination cost
-        self.P1 = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 1e3]])
+        self.P1 = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 1.0]])
         self.thresh = thresh
         self.start = np.array([0.0, 0.0, 0.0])
         self.goal = np.array([0.0, 0.0, 0.0])
@@ -314,6 +314,7 @@ class Controller:
                                    goal[0] - self.mppi.start[0])
                 self.mppi.goal = np.array([goal[0], goal[1], theta])
                 self.init = False
+                rospy.loginfo("NEXT WAYPOINT: {}".format(self.mppi.goal))
             else:
                 # Goal Reached, go to next wpt
                 if self.idx + 1 >= len(self.waypoints):
@@ -321,6 +322,9 @@ class Controller:
                 else:
                     self.idx += 1
                 self.mppi.initialize()
+                rospy.loginfo(
+                    "WAYPOINT REACHED: {} \n NEXT WAYPOINT: {}".format(
+                        self.mppi.goal, self.waypoints[self.idx]))
                 # Goal only contains x,y
                 goal = self.waypoints[self.idx]
                 # Calculate theta and polulate self.goal

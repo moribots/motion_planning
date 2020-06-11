@@ -15,7 +15,8 @@ import tf
 np.random.seed(0)
 
 # rad/s
-CONTROL_LIMIT = 6.0
+TRANS_VEL_MAX = 0.22
+ROT_VEL_MAX = 2.84
 
 
 def dd_dynamics(x, u):
@@ -58,18 +59,18 @@ def euler(x0, u, dt):
 
 
 class MPPI:
-    def __init__(self, model=rk4, horizon=100, samples=5, thresh=0.05):
+    def __init__(self, model=rk4, horizon=200, samples=10, thresh=0.05):
         self.horizon = horizon
         self.samples = samples
         self.uvec_init = np.zeros((2, horizon))
         self.model = model
         self.dt = 1.0 / float(horizon)
         # Cost during trajectory
-        self.Q = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 1.0]])
+        self.Q = np.array([[1e3, 0.0, 0.0], [0.0, 0, 0.0], [0.0, 0.0, 0.0]])
         # Cost of controls
-        self.R = np.array([[1.0, 0.0], [0.0, 1.0]])
+        self.R = np.array([[0.0, 0.0], [0.0, 0.0]])
         # Termination cost
-        self.P1 = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 1.0]])
+        self.P1 = np.array([[1e3, 0.0, 0.0], [0.0, 0, 0.0], [0.0, 0.0, 0.0]])
         self.thresh = thresh
         self.start = np.array([0.0, 0.0, 0.0])
         self.goal = np.array([0.0, 0.0, 0.0])
@@ -84,8 +85,8 @@ class MPPI:
     def get_path(self,
                  state,
                  goal,
-                 sig=np.array([[0.9, 0.0], [0.0, 0.9]]),
-                 lam=0.01):
+                 sig=np.array([[.3, 0.0], [0.0, .3]]),
+                 lam=100):
         value_fcn, eps = self.get_cost2go(state, self.latest_uvec, goal, lam,
                                           sig)
         self.latest_uvec = self.update_action(self.latest_uvec, eps, value_fcn,
@@ -96,33 +97,9 @@ class MPPI:
             (self.uvec, np.array([self.latest_uvec[:, 0]])))
         self.fin_time.append(self.fin_time[-1] + self.dt)
         # Shift controls for Receding Horizon MPPI
-        self.latest_uvec[:, :-1] = self.latest_uvec[:, 1:]
-        self.latest_uvec[:, -1] = self.uvec_init[:, 0]
+        # self.latest_uvec[:, :-1] = self.latest_uvec[:, 1:]
+        # self.latest_uvec[:, -1] = self.uvec_init[:, 0]
         return state
-
-    def solve_path(self,
-                   start,
-                   goal,
-                   sig=np.array([[0.9, 0.0], [0.0, 0.9]]),
-                   lam=0.01):
-        self.start = start
-        self.goal = goal
-        state = start
-        self.path = np.array([state])
-        self.latest_uvec = copy.deepcopy(self.uvec_init)
-        print("STARTING")
-        i = 0
-        tstart = time.time()
-        while np.linalg.norm(state[:2] - goal[:2]) > self.thresh:
-            i += 1
-            state = self.get_path(state, goal, sig, lam)
-            if i % 200 == 0:
-                print("Iteration: {} \t State: {}".format(i, state))
-        t_elapsed = time.time() - tstart
-        print(
-            "Finished after {} iterations. Final State: {}, Time Taken: {}, Time Per Iter: {}"
-            .format(i, state, t_elapsed, t_elapsed / float(i)))
-        self.initialize()
 
     def get_cost2go(self, state, uvec, goal, lam, sig):
         cost2go = []
@@ -145,36 +122,43 @@ class MPPI:
                                  sig[0, 0],
                                  size=(uvec.shape[0], self.samples)))
             u_samp = np.tile(uvec[:, t], (self.samples, 1)).T
-            st = self.model(states, u_samp + eps[-1], self.dt)
+            # EXPLORE
+            u_samp += eps[-1]
+            # CLIP
+            u_samp[0, :] = np.clip(u_samp[0, :], -TRANS_VEL_MAX, TRANS_VEL_MAX)
+            u_samp[1, :] = np.clip(u_samp[1, :], -ROT_VEL_MAX, ROT_VEL_MAX)
+            # Predict Next State
+            st = self.model(states, u_samp, self.dt)
 
             # Trajectory Cost
             costs = np.zeros(self.samples)
             for s in range(self.samples):
                 states[:, s] = st[:, s]
-                costs[s] = self.get_cost(st[:, s], goal, uvec[:, t], lam, sig,
-                                         eps[-1][:, s])
+                costs[s] = self.get_cost(st[:, s], goal, u_samp[:, s], lam,
+                                         sig, eps[-1][:, s])
 
             cost2go.append(costs)
 
         costs = np.zeros(self.samples)
         for s in range(self.samples):
             # ADD TERMINAL COST
-            cst = self.get_cost(st[:, s], goal, uvec[:, t], lam, sig,
+            cst = self.get_cost(st[:, s], goal, u_samp[:, s], lam, sig,
                                 eps[-1][:, s])
             mxt = (st[:, s] - goal).T.dot(self.P1).dot(st[:, s] - goal)
-            costs[s] = mxt
+            costs[s] = cst + mxt
 
         cost2go.append(costs)
         # get value function over time as cost2go at each timestep
         # (first reversed and summed)
         # value_fcn = np.cumsum(cost2go[::-1], 0)[::-1, :]
         value_fcn = np.flip(np.cumsum(np.flip(cost2go, 0), axis=0), 0)
+        # print("VALUE FCN: {}".format(value_fcn))
 
         return value_fcn, eps
 
     def get_cost(self, state, desired_state, u, lam, sig, eps):
         # return euclid dist
-        return (
+        return 0.5 * (
             (state - desired_state).T.dot(self.Q).dot(state - desired_state) +
             u.T.dot(self.R).dot(u)) + lam * u.dot(sig).dot(eps)
 
@@ -186,11 +170,20 @@ class MPPI:
             # Get weight for optimal action update
             # This tells us the usefulness of each eps sample in [t]
             omg = np.exp(-value_fcn[t] / lam) + 1e-8
+            # Normalize
             omg /= np.sum(omg)
             uvec[:, t] += np.dot(eps[t], omg)
+        # CLIP
+        uvec[0, :] = np.clip(uvec[0, :], -TRANS_VEL_MAX, TRANS_VEL_MAX)
+        uvec[1, :] = np.clip(uvec[1, :], -ROT_VEL_MAX, ROT_VEL_MAX)
 
         # filter controls
         uvec = savgol_filter(uvec, self.horizon - 1, 3, axis=1)
+
+        # CLIP
+        uvec[0, :] = np.clip(uvec[0, :], -TRANS_VEL_MAX, TRANS_VEL_MAX)
+        uvec[1, :] = np.clip(uvec[1, :], -ROT_VEL_MAX, ROT_VEL_MAX)
+
         return uvec
 
     def perform_action(self, state, uvec):
@@ -287,6 +280,7 @@ class Controller:
         self.waypoints = rospy.get_param("waypoints")
         self.idx = 0
         self.init = True
+        self.state = self.mppi.start
         tw = Twist()
         tw.linear.x = 0.0
         tw.angular.z = 0.0
@@ -304,7 +298,10 @@ class Controller:
             # Now do another round of MPPI
             if np.linalg.norm(self.mppi.start[:2] - self.mppi.goal[:2]
                               ) > self.mppi.thresh and not self.init:
-                self.mppi.get_path(self.mppi.start, self.mppi.goal)
+                print("START: {} \tGOAL: {}".format(self.mppi.start,
+                                                    self.mppi.goal))
+                self.state = self.mppi.get_path(self.mppi.start,
+                                                self.mppi.goal)
             elif self.init:
                 self.mppi.initialize()
                 # Goal only contains x,y
@@ -334,6 +331,7 @@ class Controller:
 
             # Grab latest controls
             u = self.mppi.uvec[-1, :]
+            # print("U: {}".format(u))
             # Publish as Twist
             tw = Twist()
             tw.linear.x = u[0]

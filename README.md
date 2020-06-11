@@ -41,8 +41,9 @@ In progress:
 	- Naive Potential Field (Local Minimum Escape TBD): `roslaunch global_planner potential_field.launch`
 	<img src="global_planner/media/PF_NAIVE.gif" alt="PFN" width="300"/>
 
-* Local planner:
-	- Dynamic Window Approach
+<!-- * Local planner:
+	- Dynamic Window Approach -->
 * Trajectory Optimization:
-	- Model Predictive Path Integral Control
+	- Model Predictive Path Integral Control on a parallel parking task (notice heading):
+	<img src="control/media/mppi_plt.gif" alt="PFN" width="300"/>
 

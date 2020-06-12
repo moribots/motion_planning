@@ -217,7 +217,7 @@ class MPPI:
         path = np.array(self.path)  # final path of robot
         control = np.array(self.uvec)  # controls used to generate the path
         fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(10, 10))
-        fig.suptitle("MPPI Control Results", fontsize=16)
+        fig.suptitle("MPPI", fontsize=12)
         ax1.set(xlabel="X position (m)", ylabel="Y position (m)")
         ax1.set_xlim(np.amin(path[:, 0]) - 0.1, np.amax(path[:, 0]) + 0.1)
         ax1.set_ylim(np.amin(path[:, 1]) - 0.1, np.amax(path[:, 1]) + 0.1)
@@ -225,16 +225,16 @@ class MPPI:
         ax2.set(xlabel="Time (s)", ylabel="State (m or rad)")
         ax2.set_xlim(0, self.fin_time[-1])  # fin_time is my time vector
         ax2.set_ylim(np.amin(path) - 0.1, np.amax(path) + 0.1)
-        ax2.legend(["x", "y", r"$\theta$"])
         line21, = ax2.plot([], [])
         line22, = ax2.plot([], [])
         line23, = ax2.plot([], [])
-        ax3.set(xlabel="Time (s)", ylabel="Velocity (m/s or rad/s)")
+        ax2.legend(["x", "y", r"$\theta$"])
+        ax3.set(xlabel="Time (s)", ylabel="Wheel Velocity (rad/s)")
         ax3.set_xlim(0, self.fin_time[-1])
         ax3.set_ylim(np.amin(control) - 0.1, np.amax(control) + 0.1)
         line31, = ax3.plot([], [])
         line32, = ax3.plot([], [])
-        ax3.legend(["v", r"$\omega$"])
+        ax3.legend(["u_l", "u_r"])
 
         def animate(i):
             ax1.clear()
@@ -391,16 +391,16 @@ class Controller:
 
 def main():
     # """ The main() function. """
-    # rospy.init_node('mppi', anonymous=True)
-    # controller = Controller()
-    # rospy.spin()
-    mppi = MPPI()
-    start = np.array([0.0, 0.0, np.pi / 2.0])
-    goal = np.array([1.0, 0.0, np.pi / 2.0])
-    mppi.solve_path(start, goal)
-    plot_path(mppi.path, start, goal)
-    plot_controls(mppi.uvec)
-    mppi.get_animation()
+    rospy.init_node('mppi', anonymous=True)
+    controller = Controller()
+    rospy.spin()
+    # mppi = MPPI()
+    # start = np.array([0.0, 0.0, np.pi / 2.0])
+    # goal = np.array([1.0, 0.0, np.pi / 2.0])
+    # mppi.solve_path(start, goal)
+    # plot_path(mppi.path, start, goal)
+    # plot_controls(mppi.uvec)
+    # mppi.get_animation()
 
 
 if __name__ == '__main__':

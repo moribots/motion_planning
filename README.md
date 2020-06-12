@@ -45,7 +45,7 @@ In progress:
 	- Dynamic Window Approach -->
 * Trajectory Optimization:
 	- Model Predictive Path Integral Control on a parallel parking task: `roslaunch control mppi_pentagon.launch parallel:=True`
-	<img src="control/media/mppi_parallel_park.gif" alt="PFN" width="350"/>
+	<img src="control/media/mppi_parallel_park.gif" alt="PFN" width="450"/>
 
 	- The associated states and controls for the above demo:
 	<img src="control/media/mppi_plt.gif" alt="PFN" width="500"/>

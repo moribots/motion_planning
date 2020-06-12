@@ -391,15 +391,16 @@ class Controller:
 
 def main():
     # """ The main() function. """
-    rospy.init_node('mppi', anonymous=True)
-    controller = Controller()
-    rospy.spin()
-    # mppi = MPPI()
-    # start = np.array([0.0, 0.0, np.pi / 2.0])
-    # goal = np.array([1.0, 0.0, np.pi / 2.0])
-    # mppi.solve_path(start, goal)
-    # plot_path(mppi.path, start, goal)
-    # plot_controls(mppi.uvec)
+    # rospy.init_node('mppi', anonymous=True)
+    # controller = Controller()
+    # rospy.spin()
+    mppi = MPPI()
+    start = np.array([0.0, 0.0, np.pi / 2.0])
+    goal = np.array([1.0, 0.0, np.pi / 2.0])
+    mppi.solve_path(start, goal)
+    plot_path(mppi.path, start, goal)
+    plot_controls(mppi.uvec)
+    mppi.get_animation()
 
 
 if __name__ == '__main__':

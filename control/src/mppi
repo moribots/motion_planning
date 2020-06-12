@@ -59,7 +59,7 @@ def euler(x0, u, dt):
 
 
 class MPPI:
-    def __init__(self, model=rk4, horizon=100, samples=10, thresh=0.001):
+    def __init__(self, model=rk4, horizon=100, samples=10, thresh=0.05):
         self.horizon = horizon
         self.samples = samples
         self.uvec_init = np.zeros((2, horizon))
@@ -301,7 +301,12 @@ class Controller:
                                         self.pos_cb,
                                         queue_size=1)
         self.tw_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
-        self.waypoints = rospy.get_param("waypoints")
+        self.done = False
+        if not rospy.get_param("waypoints"):
+            self.parallel_park = True
+        else:
+            self.parallel_park = False
+            self.waypoints = rospy.get_param("waypoints")
         self.idx = 0
         self.init = True
         self.state = self.mppi.start
@@ -321,9 +326,6 @@ class Controller:
 
     def pos_cb(self, odom):
         try:
-            # diff = time.time() - self.last_time
-            # self.last_time = time.time()
-            # print("TIME TAKEN: {}".format(diff))
             # Update Start
             x = odom.pose.pose.position.x
             y = odom.pose.pose.position.y
@@ -331,48 +333,52 @@ class Controller:
             orn_list = [orn.x, orn.y, orn.z, orn.w]
             theta = tf.transformations.euler_from_quaternion(orn_list)[2]
             self.mppi.start = np.array([x, y, theta])
-            self.mppi.goal = np.array([1.0, 0.0, np.pi / 2.0])
+            if self.parallel_park:
+                self.mppi.goal = np.array([0.0, -1.0, 0.0])
             # Now do another round of MPPI
             if np.linalg.norm(self.mppi.start[:2] - self.mppi.goal[:2]
                               ) > self.mppi.thresh and not self.init:
-                # print("START: {} \tGOAL: {}".format(self.mppi.start,
-                #                                     self.mppi.goal))
-                # print("MPPI: {} \tODOM: {}".format(self.state,
-                #                                    self.mppi.start))
                 self.state = self.mppi.get_path(self.mppi.start,
                                                 self.mppi.goal)
+                self.done = False
             elif self.init:
                 self.mppi.initialize()
-                # Goal only contains x,y
-                goal = self.waypoints[self.idx]
-                # Calculate theta and polulate self.goal
-                theta = np.arctan2(goal[1] - self.mppi.start[1],
-                                   goal[0] - self.mppi.start[0])
-                # self.mppi.goal = np.array([goal[0], goal[1], theta])
-                self.mppi.goal = np.array([1.0, 0.0, np.pi / 2.0])
-                self.state = self.mppi.start
+                if not self.parallel_park:
+                    # Goal only contains x,y
+                    goal = self.waypoints[self.idx]
+                    # Calculate theta and polulate self.goal
+                    theta = np.arctan2(goal[1] - self.mppi.start[1],
+                                       goal[0] - self.mppi.start[0])
+                    self.mppi.goal = np.array([goal[0], goal[1], theta])
+                    self.state = self.mppi.start
                 self.init = False
-                rospy.loginfo("NEXT WAYPOINT: {}".format(self.mppi.goal))
+                rospy.loginfo("NEXT WAYPOINT: {}".format(self.mppi.goal[:2]))
             else:
-                # Goal Reached, go to next wpt
-                if self.idx + 1 >= len(self.waypoints):
-                    self.idx = 0
+                if not self.parallel_park:
+                    # Goal Reached, go to next wpt
+                    if self.idx + 1 >= len(self.waypoints):
+                        self.idx = 0
+                    else:
+                        self.idx += 1
+                    self.mppi.initialize()
+                    rospy.loginfo(
+                        "WAYPOINT REACHED: {} \n NEXT WAYPOINT: {}".format(
+                            self.mppi.goal[:2], self.waypoints[self.idx]))
+                    # Goal only contains x,y
+                    goal = self.waypoints[self.idx]
+                    # Calculate theta and polulate self.goal
+                    theta = np.arctan2(goal[1] - self.mppi.start[1],
+                                       goal[0] - self.mppi.start[0])
+                    self.mppi.goal = np.array([goal[0], goal[1], theta])
+                    self.state = self.mppi.start
                 else:
-                    self.idx += 1
-                self.mppi.initialize()
-                rospy.loginfo(
-                    "WAYPOINT REACHED: {} \n NEXT WAYPOINT: {}".format(
-                        self.mppi.goal, self.waypoints[self.idx]))
-                # Goal only contains x,y
-                goal = self.waypoints[self.idx]
-                # Calculate theta and polulate self.goal
-                theta = np.arctan2(goal[1] - self.mppi.start[1],
-                                   goal[0] - self.mppi.start[0])
-                self.mppi.goal = np.array([goal[0], goal[1], theta])
-                self.state = self.mppi.start
+                    self.done = True
 
             # Grab latest controls
-            u = self.mppi.uvec[-1, :]
+            if not self.done:
+                u = self.mppi.uvec[-1, :]
+            else:
+                u = np.array([0.0, 0.0])
             vx, wz = self.wheelsToTwist(u)
             tw = Twist()
             tw.linear.x = vx

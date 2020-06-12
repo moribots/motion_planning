@@ -30,8 +30,19 @@
 			<param name="right_wheel_joint" value="left_wheel_axle" />
 			<param name="left_wheel_joint" value="left_wheel_axle" />
 		</node>
-	<!-- Load Waypoints -->
-	<rosparam command="load" file="$(find control)/config/waypoints.yaml" />
+
+	<arg name="parallel" default="False" doc="True: Parallel Park | False: Follow Waypoints"/>
+	<group if="$(arg parallel)">
+		<!-- Load Parallel Park -->
+		<rosparam command="load" file="$(find control)/config/parallel.yaml" />
+	</group>
+
+	<group unless="$(arg parallel)">
+		<!-- Load Waypoints -->
+		<rosparam command="load" file="$(find control)/config/waypoints.yaml" />
+	</group>
+
+
 
 	<!-- Include diff drive viewer without joint state publisher -->
 	<include file="$(find nuturtle_description)/launch/view_diff_drive.launch">

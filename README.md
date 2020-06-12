@@ -44,9 +44,20 @@ In progress:
 <!-- * Local planner:
 	- Dynamic Window Approach -->
 * Trajectory Optimization:
-	- Model Predictive Path Integral Control on a parallel parking task (notice heading):
+	- Model Predictive Path Integral Control on a parallel parking task: `roslaunch control mppi_pentagon.launch parallel:=True`
 	<img src="control/media/mppi_parallel_park.gif" alt="PFN" width="350"/>
 
 	- The associated states and controls for the above demo:
 	<img src="control/media/mppi_plt.gif" alt="PFN" width="500"/>
+
+	NOTE: To launch waypoint following method, simply don't include the `parallel` argument.
+
+	In a separate terminal, do:
+
+	`rosservice call /set_pose "x: 0.0
+	y: 0.0
+	theta: 0.0" 
+	result: True`
+
+	To start the node.
 

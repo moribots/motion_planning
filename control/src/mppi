@@ -7,28 +7,27 @@ from matplotlib import animation
 import copy
 import time
 import rospy
-from control.msg import Waypoint
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 import tf
+from geometry_msgs.msg import Twist, Quaternion, Vector3
 
 np.random.seed(0)
 
 # rad/s
-TRANS_VEL_MAX = 0.22
-ROT_VEL_MAX = 2.84
+WHEEL_VEL_MAX = 6.35492
+WHEEL_RADIUS = 0.033
+WHEEL_BASE = 0.16
 
 
 def dd_dynamics(x, u):
     """ Diff Drive dd_dynamics
     """
-    # wheel radius
-    radius = 0.033
-    # wheel base
-    wheel_base = 0.16
-    return np.array([(radius / 2.0) * np.cos(x[2, :]) * (u[0, :] + u[1, :]),
-                     (radius / 2.0) * np.sin(x[2, :]) * (u[0, :] + u[1, :]),
-                     (radius / wheel_base) * (u[1, :] - u[0, :])])
+    return np.array([
+        (WHEEL_RADIUS / 2.0) * np.cos(x[2, :]) * (u[0, :] + u[1, :]),
+        (WHEEL_RADIUS / 2.0) * np.sin(x[2, :]) * (u[0, :] + u[1, :]),
+        (WHEEL_RADIUS / WHEEL_BASE) * (u[1, :] - u[0, :])
+    ])
 
 
 def unicycle_dynamics(x, u):
@@ -49,6 +48,7 @@ def rk4(x0, u, dt):
     k4 = dt * dd_dynamics(x0 + k3, u)
     # initial plus update
     xnew = x0 + (1.0 / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+    # Clip Theta
     xnew[2, :] = xnew[2, :] - (np.ceil(
         (xnew[2, :] + np.pi) / (2.0 * np.pi)) - 1.0) * 2.0 * np.pi
     return xnew
@@ -59,18 +59,18 @@ def euler(x0, u, dt):
 
 
 class MPPI:
-    def __init__(self, model=rk4, horizon=200, samples=10, thresh=0.05):
+    def __init__(self, model=rk4, horizon=100, samples=10, thresh=0.1):
         self.horizon = horizon
         self.samples = samples
         self.uvec_init = np.zeros((2, horizon))
         self.model = model
         self.dt = 1.0 / float(horizon)
         # Cost during trajectory
-        self.Q = np.array([[1e3, 0.0, 0.0], [0.0, 0, 0.0], [0.0, 0.0, 0.0]])
+        self.Q = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 0.0]])
         # Cost of controls
-        self.R = np.array([[0.0, 0.0], [0.0, 0.0]])
+        self.R = np.array([[1.0, 0.0], [0.0, 1.0]])
         # Termination cost
-        self.P1 = np.array([[1e3, 0.0, 0.0], [0.0, 0, 0.0], [0.0, 0.0, 0.0]])
+        self.P1 = np.array([[1e3, 0.0, 0.0], [0.0, 1e3, 0.0], [0.0, 0.0, 1e3]])
         self.thresh = thresh
         self.start = np.array([0.0, 0.0, 0.0])
         self.goal = np.array([0.0, 0.0, 0.0])
@@ -85,8 +85,8 @@ class MPPI:
     def get_path(self,
                  state,
                  goal,
-                 sig=np.array([[.3, 0.0], [0.0, .3]]),
-                 lam=100):
+                 sig=np.array([[.9, 0.0], [0.0, .9]]),
+                 lam=.001):
         value_fcn, eps = self.get_cost2go(state, self.latest_uvec, goal, lam,
                                           sig)
         self.latest_uvec = self.update_action(self.latest_uvec, eps, value_fcn,
@@ -97,9 +97,32 @@ class MPPI:
             (self.uvec, np.array([self.latest_uvec[:, 0]])))
         self.fin_time.append(self.fin_time[-1] + self.dt)
         # Shift controls for Receding Horizon MPPI
-        # self.latest_uvec[:, :-1] = self.latest_uvec[:, 1:]
-        # self.latest_uvec[:, -1] = self.uvec_init[:, 0]
+        self.latest_uvec[:, :-1] = self.latest_uvec[:, 1:]
+        self.latest_uvec[:, -1] = self.uvec_init[:, 0]
         return state
+
+    def solve_path(self,
+                   start,
+                   goal,
+                   sig=np.array([[1.0, 0.0], [0.0, 1.0]]),
+                   lam=.01):
+        self.start = start
+        self.goal = goal
+        state = start
+        self.path = np.array([state])
+        self.latest_uvec = copy.deepcopy(self.uvec_init)
+        print("STARTING")
+        i = 0
+        tstart = time.time()
+        while np.linalg.norm(state[:2] - goal[:2]) > self.thresh:
+            i += 1
+            state = self.get_path(state, goal, sig, lam)
+            if i % 200 == 0:
+                print("Iteration: {} \t State: {}".format(i, state))
+        t_elapsed = time.time() - tstart
+        print(
+            "Finished after {} iterations. Final State: {}, Time Taken: {}, Time Per Iter: {}"
+            .format(i, state, t_elapsed, t_elapsed / float(i)))
 
     def get_cost2go(self, state, uvec, goal, lam, sig):
         cost2go = []
@@ -125,8 +148,8 @@ class MPPI:
             # EXPLORE
             u_samp += eps[-1]
             # CLIP
-            u_samp[0, :] = np.clip(u_samp[0, :], -TRANS_VEL_MAX, TRANS_VEL_MAX)
-            u_samp[1, :] = np.clip(u_samp[1, :], -ROT_VEL_MAX, ROT_VEL_MAX)
+            u_samp[0, :] = np.clip(u_samp[0, :], -WHEEL_VEL_MAX, WHEEL_VEL_MAX)
+            u_samp[1, :] = np.clip(u_samp[1, :], -WHEEL_VEL_MAX, WHEEL_VEL_MAX)
             # Predict Next State
             st = self.model(states, u_samp, self.dt)
 
@@ -134,7 +157,7 @@ class MPPI:
             costs = np.zeros(self.samples)
             for s in range(self.samples):
                 states[:, s] = st[:, s]
-                costs[s] = self.get_cost(st[:, s], goal, u_samp[:, s], lam,
+                costs[s] = self.get_cost(st[:, s], goal, uvec[:, t], lam,
                                          sig, eps[-1][:, s])
 
             cost2go.append(costs)
@@ -142,12 +165,10 @@ class MPPI:
         costs = np.zeros(self.samples)
         for s in range(self.samples):
             # ADD TERMINAL COST
-            cst = self.get_cost(st[:, s], goal, u_samp[:, s], lam, sig,
-                                eps[-1][:, s])
             mxt = (st[:, s] - goal).T.dot(self.P1).dot(st[:, s] - goal)
-            costs[s] = cst + mxt
+            costs[s] = mxt
 
-        cost2go.append(costs)
+        cost2go[-1] += costs
         # get value function over time as cost2go at each timestep
         # (first reversed and summed)
         # value_fcn = np.cumsum(cost2go[::-1], 0)[::-1, :]
@@ -174,15 +195,15 @@ class MPPI:
             omg /= np.sum(omg)
             uvec[:, t] += np.dot(eps[t], omg)
         # CLIP
-        uvec[0, :] = np.clip(uvec[0, :], -TRANS_VEL_MAX, TRANS_VEL_MAX)
-        uvec[1, :] = np.clip(uvec[1, :], -ROT_VEL_MAX, ROT_VEL_MAX)
+        uvec[0, :] = np.clip(uvec[0, :], -WHEEL_VEL_MAX, WHEEL_VEL_MAX)
+        uvec[1, :] = np.clip(uvec[1, :], -WHEEL_VEL_MAX, WHEEL_VEL_MAX)
 
         # filter controls
         uvec = savgol_filter(uvec, self.horizon - 1, 3, axis=1)
 
         # CLIP
-        uvec[0, :] = np.clip(uvec[0, :], -TRANS_VEL_MAX, TRANS_VEL_MAX)
-        uvec[1, :] = np.clip(uvec[1, :], -ROT_VEL_MAX, ROT_VEL_MAX)
+        uvec[0, :] = np.clip(uvec[0, :], -WHEEL_VEL_MAX, WHEEL_VEL_MAX)
+        uvec[1, :] = np.clip(uvec[1, :], -WHEEL_VEL_MAX, WHEEL_VEL_MAX)
 
         return uvec
 
@@ -275,7 +296,10 @@ def plot_controls(uvec):
 class Controller:
     def __init__(self):
         self.mppi = MPPI()
-        self.sub_pos = rospy.Subscriber('odom', Odometry, self.pos_cb)
+        self.sub_pos = rospy.Subscriber('odom',
+                                        Odometry,
+                                        self.pos_cb,
+                                        queue_size=1)
         self.tw_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
         self.waypoints = rospy.get_param("waypoints")
         self.idx = 0
@@ -285,9 +309,21 @@ class Controller:
         tw.linear.x = 0.0
         tw.angular.z = 0.0
         self.tw_pub.publish(tw)
+        self.last_time = time.time()
+
+    def wheelsToTwist(self, wheel_vels):
+        ul = wheel_vels[0]
+        ur = wheel_vels[1]
+
+        vx = WHEEL_RADIUS * (ul + ur) / 2.0
+        wz = WHEEL_RADIUS * (-ul + ur) / WHEEL_BASE
+        return vx, wz
 
     def pos_cb(self, odom):
         try:
+            # diff = time.time() - self.last_time
+            # self.last_time = time.time()
+            # print("TIME TAKEN: {}".format(diff))
             # Update Start
             x = odom.pose.pose.position.x
             y = odom.pose.pose.position.y
@@ -298,8 +334,10 @@ class Controller:
             # Now do another round of MPPI
             if np.linalg.norm(self.mppi.start[:2] - self.mppi.goal[:2]
                               ) > self.mppi.thresh and not self.init:
-                print("START: {} \tGOAL: {}".format(self.mppi.start,
-                                                    self.mppi.goal))
+                # print("START: {} \tGOAL: {}".format(self.mppi.start,
+                #                                     self.mppi.goal))
+                # print("MPPI: {} \tODOM: {}".format(self.state,
+                #                                    self.mppi.start))
                 self.state = self.mppi.get_path(self.mppi.start,
                                                 self.mppi.goal)
             elif self.init:
@@ -309,7 +347,9 @@ class Controller:
                 # Calculate theta and polulate self.goal
                 theta = np.arctan2(goal[1] - self.mppi.start[1],
                                    goal[0] - self.mppi.start[0])
-                self.mppi.goal = np.array([goal[0], goal[1], theta])
+                # self.mppi.goal = np.array([goal[0], goal[1], theta])
+                self.mppi.goal = np.array([1.0, 0.0, np.pi / 2.0])
+                self.state = self.mppi.start
                 self.init = False
                 rospy.loginfo("NEXT WAYPOINT: {}".format(self.mppi.goal))
             else:
@@ -328,14 +368,14 @@ class Controller:
                 theta = np.arctan2(goal[1] - self.mppi.start[1],
                                    goal[0] - self.mppi.start[0])
                 self.mppi.goal = np.array([goal[0], goal[1], theta])
+                self.state = self.mppi.start
 
             # Grab latest controls
             u = self.mppi.uvec[-1, :]
-            # print("U: {}".format(u))
-            # Publish as Twist
+            vx, wz = self.wheelsToTwist(u)
             tw = Twist()
-            tw.linear.x = u[0]
-            tw.angular.z = u[1]
+            tw.linear.x = vx
+            tw.angular.z = wz
             self.tw_pub.publish(tw)
 
         except rospy.ROSInterruptException:
@@ -351,6 +391,8 @@ def main():
     # start = np.array([0.0, 0.0, np.pi / 2.0])
     # goal = np.array([1.0, 0.0, np.pi / 2.0])
     # mppi.solve_path(start, goal)
+    # plot_path(mppi.path, start, goal)
+    # plot_controls(mppi.uvec)
 
 
 if __name__ == '__main__':

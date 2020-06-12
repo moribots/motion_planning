@@ -56,8 +56,7 @@ In progress:
 
 	`rosservice call /set_pose "x: 0.0
 	y: 0.0
-	theta: 0.0" 
-	result: True`
+	theta: 0.0"`
 
 	To start the node.
 

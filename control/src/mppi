@@ -59,7 +59,7 @@ def euler(x0, u, dt):
 
 
 class MPPI:
-    def __init__(self, model=rk4, horizon=100, samples=10, thresh=0.1):
+    def __init__(self, model=rk4, horizon=100, samples=10, thresh=0.001):
         self.horizon = horizon
         self.samples = samples
         self.uvec_init = np.zeros((2, horizon))
@@ -331,6 +331,7 @@ class Controller:
             orn_list = [orn.x, orn.y, orn.z, orn.w]
             theta = tf.transformations.euler_from_quaternion(orn_list)[2]
             self.mppi.start = np.array([x, y, theta])
+            self.mppi.goal = np.array([1.0, 0.0, np.pi / 2.0])
             # Now do another round of MPPI
             if np.linalg.norm(self.mppi.start[:2] - self.mppi.goal[:2]
                               ) > self.mppi.thresh and not self.init:

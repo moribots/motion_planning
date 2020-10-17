@@ -5,8 +5,7 @@ Self-directed independent study.
 ### Installation Guide:
 - `git clone git@github.com:moribots/motion_planning.git`
 - `wstool init` (uses the nuturtle.rosinstall file to get my rigid2d library and other utilities)
-
-Completed:
+- **TEMPORARY:** in the `control` directory, create an empty folder called `include`. This will no longer be a requirement once I add the relevant header files to my library. See Issue #2.
 
 * The `map` package: `roslaunch map viz_map.launch`
 	- Probabilistic Roadmap:
@@ -16,8 +15,6 @@ Completed:
 	- Tunable-resolution Grid Map
 
 	<img src="map/media/grid.png" alt="GRID" width="300"/>
-
-In progress:
 
 * The `global_planner` package:
 	- A* (green) on PRM:

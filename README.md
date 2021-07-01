@@ -9,6 +9,7 @@ Self-directed independent study.
 - Initialize `nuturtle.rosinstall` to get my rigid2d library and other utilities: `wstool init src src/motion_planning/nuturtle.rosinstall
 `
 
+### In this Repo:
 * The `map` package: `roslaunch map viz_map.launch`
 	- Probabilistic Roadmap:
 

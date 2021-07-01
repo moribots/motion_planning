@@ -3,8 +3,11 @@
 Self-directed independent study.
 
 ### Installation Guide:
-- `git clone git@github.com:moribots/motion_planning.git`
-- `wstool init` (uses the nuturtle.rosinstall file to get my rigid2d library and other utilities)
+- Make a ROS Workspace: `mkdir -p ws/src`
+- Go to `src` and clone my repo: `cd ws/src/` `git clone git@github.com:moribots/motion_planning.git`
+- Go back to the workspace root: `cd ..`
+- Initialize `nuturtle.rosinstall` to get my rigid2d library and other utilities: `wstool init src src/motion_planning/nuturtle.rosinstall
+`
 
 * The `map` package: `roslaunch map viz_map.launch`
 	- Probabilistic Roadmap:

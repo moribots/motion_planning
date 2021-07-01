@@ -6,8 +6,8 @@ Self-directed independent study.
 - Make a ROS Workspace: `mkdir -p ws/src`
 - Go to `src` and clone my repo: `cd ws/src/` `git clone git@github.com:moribots/motion_planning.git`
 - Go back to the workspace root: `cd ..`
-- Initialize `nuturtle.rosinstall` to get my rigid2d library and other utilities: `wstool init src src/motion_planning/nuturtle.rosinstall
-`
+- Initialize `nuturtle.rosinstall` to get my rigid2d library and other utilities: `wstool init src src/motion_planning/nuturtle.rosinstall`
+- Build the workspace: `catkin_make` and source `source devel/setup.bash`
 
 ### In this Repo:
 * The `map` package: `roslaunch map viz_map.launch`

@@ -25,12 +25,29 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
+## System dependencies are found with CMake's conventions
+# list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 find_package(osqp REQUIRED)
 
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(OsqpEigen REQUIRED)
+
+set(osqp_INCLUDE_DIR /usr/local/include/osqp)
+set(OsqpEigen_INCLUDE_DIR /usr/local/include/OsqpEigen)
+
+message(STATUS "OsqpEigen_INCLUDE_DIR : " ${OsqpEigen_INCLUDE_DIR})
+message(STATUS "osqp_INCLUDE_DIR : " ${osqp_INCLUDE_DIR})
+
+# message(STATUS "QP : " ${OsqpEigen_FOUND})
+# message(STATUS "QP lib: " ${OsqpEigen_LIBRARIES})
+# message(STATUS "QP include: " ${OsqpEigen_INCLUDE_DIRS})
+
+# if (OsqpEigenFOUND)
+#   message(STATUS "Found OsqpEigen")
+# else ()
+#   message(ERROR " OsqpEigen not found")
+# endif ()
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -121,7 +138,7 @@ catkin_package(
 INCLUDE_DIRS include
 LIBRARIES ${PROJECT_NAME} global_planner map rigid2d nuslam
 CATKIN_DEPENDS global_planner map message_generation message_runtime rigid2d roscpp nuslam visualization_msgs std_msgs
-#  DEPENDS system_lib
+#  DEPENDS system_lib OsqpEigen
 )
 
 ###########
@@ -134,11 +151,16 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${Eigen3_INCLUDE_DIRS}
+  ${OsqpEigen_INCLUDE_DIR}
+  ${osqp_INCLUDE_DIR}
 )
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/rk4.cpp
+  src/${PROJECT_NAME}/TrajMPC.cpp
+  src/${PROJECT_NAME}/Models.cpp
+  src/${PROJECT_NAME}/utilities.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -150,16 +172,19 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(osqp_example src/osqp_example.cpp)
+add_executable(osqp_eigen_example src/osqp_eigen_example.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
 set_target_properties(osqp_example PROPERTIES OUTPUT_NAME osqp_example PREFIX "")
+set_target_properties(osqp_eigen_example PROPERTIES OUTPUT_NAME osqp_eigen_example PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(osqp_example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${Eigen3_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(osqp_eigen_example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${Eigen3_EXPORTED_TARGETS} ${rigid2d_EXPORTED_TARGETS} ${nuslam_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(
@@ -168,6 +193,17 @@ ${rigid2d_LIBRARIES}
 ${nuslam_LIBRARIES}
 Eigen3::Eigen
 osqp::osqp
+${PROJECT_NAME}
+${catkin_LIBRARIES}
+)
+
+target_link_libraries(
+osqp_eigen_example # this is my node that will use below libraries
+${rigid2d_LIBRARIES}
+${nuslam_LIBRARIES}
+Eigen3::Eigen
+osqp::osqp
+OsqpEigen::OsqpEigen
 ${PROJECT_NAME}
 ${catkin_LIBRARIES}
 )
@@ -188,7 +224,7 @@ install(PROGRAMS
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
-install(TARGETS osqp_example
+install(TARGETS osqp_example osqp_eigen_example
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

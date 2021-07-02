@@ -1,5 +1,14 @@
 <launch>
+
+		<arg name="eigen" default="False" doc="True: Call Eigen Wrapped OSQP Example"/>
+	<group if="$(arg eigen)">
+		<!-- OSQP Eigen Example Node -->
+		<node pkg="control" type="osqp_eigen_example" name="osqp_eigen_example" output="screen"/>
+	</group>
+
+	<group unless="$(arg eigen)">
 		<!-- OSQP Example Node -->
 		<node pkg="control" type="osqp_example" name="osqp_example" output="screen"/>
+	</group>
 
 </launch>

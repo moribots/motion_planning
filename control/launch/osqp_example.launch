@@ -1,0 +1,5 @@
+<launch>
+		<!-- OSQP Example Node -->
+		<node pkg="control" type="osqp_example" name="osqp_example" output="screen"/>
+
+</launch>

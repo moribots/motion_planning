@@ -23,11 +23,11 @@ using Eigen::VectorXd;
  *  METHODS:
  *    num_variables(): return number of variables in the problem.
  *    num_constraints(): return number of constraints in the problem.
- *    gradient(): return the dynamic model's gradient.
- *    hessian(): return the dynamic model's hessian.
+ *    gradient(): return a reference to the dynamic model's gradient.
+ *    hessian(): return a reference to the dynamic model's hessian.
  *    linear_constraint_matrix(): return the dynamic model's constraint matrix.
- *    lower_bound(): return the lower bound constraint vector.
- *    upper_bound(): return the upper bound constraint vector.
+ *    lower_bound(): return a reference to the lower bound constraint vector.
+ *    upper_bound(): return a reference to the upper bound constraint vector.
  *
  * State: Contains configuration.
  * Action: Container for returning minimizing commands.

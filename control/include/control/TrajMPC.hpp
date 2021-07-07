@@ -74,16 +74,16 @@ class TrajMPC {
 
     // cast the MPC problem as QP problem
     control::utilities::castMPCToQPHessian<Q.rows(), R.rows()>(
-        Q, R, m_mpcWindow, *m_model.hessian());
+        Q, R, m_mpcWindow, m_model.hessian());
     control::utilities::castMPCToQPGradient<Q.rows(), xRef.rows(), xRef.cols()>(
-        Q, xRef, m_mpcWindow, *m_model.gradient());
+        Q, xRef, m_mpcWindow, m_model.gradient());
     control::utilities::castMPCToQPConstraintMatrix<a.rows(), a.cols(),
                                                     b.rows(), b.cols()>(
-        a, b, m_mpcWindow, *m_model.linear_constraint_matrix());
+        a, b, m_mpcWindow, m_model.linear_constraint_matrix());
     control::utilities::castMPCToQPConstraintVectors<xMax.rows(), uMax.rows(),
                                                      x0.rows()>(
-        xMax, xMin, uMax, uMin, x0, m_mpcWindow, *m_model.lower_bound(),
-        *m_model.upper_bound());
+        xMax, xMin, uMax, uMin, x0, m_mpcWindow, m_model.lower_bound(),
+        m_model.upper_bound());
 
     // instantiate the solver
     OsqpEigen::Solver solver;
@@ -95,13 +95,13 @@ class TrajMPC {
     // set the initial data of the QP solver
     solver.data()->setNumberOfVariables(m_model.num_variables(m_mpcWindow));
     solver.data()->setNumberOfConstraints(m_model.num_constraints(m_mpcWindow));
-    if (!solver.data()->setHessianMatrix(*m_model.hessian())) return 1;
-    if (!solver.data()->setGradient(*m_model.gradient())) return 1;
+    if (!solver.data()->setHessianMatrix(m_model.hessian())) return 1;
+    if (!solver.data()->setGradient(m_model.gradient())) return 1;
     if (!solver.data()->setLinearConstraintsMatrix(
-            *m_model.linear_constraint_matrix()))
+            m_model.linear_constraint_matrix()))
       return 1;
-    if (!solver.data()->setLowerBound(*m_model.lower_bound())) return 1;
-    if (!solver.data()->setUpperBound(*m_model.upper_bound())) return 1;
+    if (!solver.data()->setLowerBound(m_model.lower_bound())) return 1;
+    if (!solver.data()->setUpperBound(m_model.upper_bound())) return 1;
 
     // instantiate the solver
     if (!solver.initSolver()) return 1;
@@ -119,30 +119,28 @@ class TrajMPC {
    * @param action Container for assigning optimal control action.
    * @return OSQP exit code.
    */
-  size_t solve(const Problem& problem, Action* action, ) {
+  size_t solve(const Problem& problem, Action* action) {
     // TODO: Remove
     action->cmd = 0;
     // TODO: Remove
 
     // Grab updated problem parameters
     const auto& Q = problem.Q();
-    const auto& x0 = problem.x0();
+    auto& x0 = problem.x0();
     const auto& xRef = problem.xRef();
-
-    // Update Gradient based on new xRef
-    control::utilities::castMPCToQPGradient<Q.rows(), xRef.rows(), xRef.cols()>(
-        Q, xRef, m_mpcWindow, *m_model.gradient());
-    if (!solver.data()->updateGradient(*m_model.gradient())) return 1;
-    // Update Constraint Vector based on new initial state
-    control::utilities::updateConstraintVectors<*m_model.upper_bound().rows()>(
-        x0, *m_model.lower_bound(), *m_model.upper_bound());
-    if (!solver.updateBounds(*m_model.lower_bound(), *m_model.upper_bound()))
-      return 1;
 
     // Grab solver
     auto& solver = m_solver;
 
-    // TODO: Update xRef and costs
+    // Update Gradient based on new xRef
+    control::utilities::castMPCToQPGradient<Q.rows(), xRef.rows(), xRef.cols()>(
+        Q, xRef, m_mpcWindow, m_model.gradient());
+    if (!solver.updateGradient(m_model.gradient())) return 1;
+    // Update Constraint Vector based on new initial state
+    control::utilities::updateConstraintVectors<x0.rows()>(
+        x0, m_model.lower_bound(), m_model.upper_bound());
+    if (!solver.updateBounds(m_model.lower_bound(), m_model.upper_bound()))
+      return 1;
 
     // controller input and QPSolution vector
     Eigen::Vector4d ctr;
@@ -151,7 +149,7 @@ class TrajMPC {
     // Exceeded max steps.
     size_t exit_code = -1;
 
-    obj_val = std::numeric_limits<double>::max();
+    double obj_val = std::numeric_limits<double>::max();
 
     for (int i = 0; i < m_max_solve_steps; i++) {
       // solve the QP problem
@@ -165,14 +163,13 @@ class TrajMPC {
       // save data into file
       // auto x0Data = x0.data();
 
-      // propagate the model
-      m_last_measured = m_model.a() * m_last_measured + m_model.b() * ctr;
+      // propagate the model - TODO: RK4
+      x0 = m_model.a() * x0 + m_model.b() * ctr;
 
       // update the constraint bound
-      control::utilities::updateConstraintVectors<
-          *m_model.upper_bound().rows()>(x0, *m_model.lower_bound(),
-                                         *m_model.upper_bound());
-      if (!solver.updateBounds(*m_model.lower_bound(), *m_model.upper_bound()))
+      control::utilities::updateConstraintVectors<x0.rows()>(
+          x0, m_model.lower_bound(), m_model.upper_bound());
+      if (!solver.updateBounds(m_model.lower_bound(), m_model.upper_bound()))
         return 1;
 
       /// Get the optimal objective value, can be used to exit early.

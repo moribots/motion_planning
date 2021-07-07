@@ -120,10 +120,6 @@ class TrajMPC {
    * @return OSQP exit code.
    */
   size_t solve(const Problem& problem, Action* action) {
-    // TODO: Remove
-    action->cmd = 0;
-    // TODO: Remove
-
     // Grab updated problem parameters
     const auto& Q = problem.Q();
     auto& x0 = problem.x0();
@@ -144,6 +140,8 @@ class TrajMPC {
 
     // controller input and QPSolution vector
     Eigen::Vector4d ctr;
+    // Assign zero control to action in case of failure.
+    action->cmd = ctr;
     Eigen::VectorXd QPSolution;
 
     // Exceeded max steps.
